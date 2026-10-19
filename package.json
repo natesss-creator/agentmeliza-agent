@@ -18,6 +18,7 @@
     "start:eve": "eve start"
   },
   "dependencies": {
+    "@ai-sdk/google": "4.0.99",
     "@vercel/connect": "0.4.2",
     "ai": "7.0.112",
     "eve": "0.66.0",
