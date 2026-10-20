@@ -3,16 +3,16 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 
 const PUBLISHABLE_SITES = {
-  kenyaclassified: {
-    url: "https://kenyaclassified.co.ke/index.php?page=item&action=item_add",
-    label: "KenyaClassified",
-    useProfile: false,
-  },
-  kobstore: {
-    url: "https://www.kobstore.co.ke/register",
-    label: "KobStore",
-    useProfile: true,
-  },
+  kenyaclassified: { url: "https://kenyaclassified.co.ke/index.php?page=item&action=item_add", label: "KenyaClassified", useProfile: false },
+  kobstore: { url: "https://www.kobstore.co.ke/register", label: "KobStore", useProfile: true },
+  postadz: { url: "https://postadz.com/post", label: "Post Adz", useProfile: true },
+  listitglobal: { url: "https://listitglobal.com/", label: "List It Global", useProfile: true },
+  bizilisting: { url: "https://bizilisting.com/", label: "Bizilisting", useProfile: true },
+  foxyads: { url: "https://foxyads.app/en", label: "Foxy Ads", useProfile: true },
+  adhubkenya: { url: "https://adhubkenya.co.ke/", label: "AdHub Kenya", useProfile: true },
+  fungadeal: { url: "https://fungadeal.com/", label: "FungaDeal", useProfile: true },
+  esencial: { url: "https://esencialmarketplace.com/ke", label: "Esencial", useProfile: true },
+  sokoads: { url: "https://sokoads.co.ke/", label: "Soko Ads", useProfile: true },
 } as const;
 
 const PRODUCT_DISCLOSURE =
@@ -36,36 +36,29 @@ async function runTinyFish(input: {
 
   if (input.useProfile) {
     const profileId = process.env.TINYFISH_PROFILE_ID;
-    if (!profileId) {
-      throw new Error(
-        "TINYFISH_PROFILE_ID is not configured. Save an authenticated KobStore browser profile before enabling autonomous KobStore publishing.",
-      );
-    }
+    if (!profileId) throw new Error("TINYFISH_PROFILE_ID is not configured for authenticated publishing sites.");
     body.use_profile = true;
     body.profile_id = profileId;
   }
 
   const response = await fetch("https://agent.tinyfish.ai/v1/automation/run", {
     method: "POST",
-    headers: {
-      "X-API-Key": apiKey,
-      "Content-Type": "application/json",
-    },
+    headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
-  if (!response.ok) {
-    throw new Error(`TinyFish returned HTTP ${response.status}: ${await response.text()}`);
-  }
-
+  if (!response.ok) throw new Error(`TinyFish returned HTTP ${response.status}: ${await response.text()}`);
   return response.json() as Promise<Record<string, unknown>>;
 }
 
 export default defineTool({
   description:
-    "Publish one compliant First Income Clarity listing to an explicitly allowlisted authorized site. KenyaClassified uses a public posting flow. KobStore uses a saved authenticated TinyFish browser profile and must already be authorized. Never bypass CAPTCHA, Cloudflare, Turnstile, login, phone/identity verification, payment gates, email verification, or rate limits. Return the verified live URL or the exact blocker. The tool is intended for autonomous scheduled publishing.",
+    "Publish one compliant First Income Clarity listing to an explicitly authorized allowlisted site. Authenticated sites use the owner's saved TinyFish browser context profile. This tool may test authorized sites and promote only successful verified submissions to published status. Never bypass CAPTCHA, Cloudflare, Turnstile, login, phone/identity verification, payment gates, email verification, rate limits, or platform restrictions. Return the verified live URL or exact blocker. Do not invent URLs or claim a listing is live without verification.",
   inputSchema: z.object({
-    site: z.enum(["kenyaclassified", "kobstore"]),
+    site: z.enum([
+      "kenyaclassified", "kobstore", "postadz", "listitglobal", "bizilisting", "foxyads",
+      "adhubkenya", "fungadeal", "esencial", "sokoads",
+    ]),
     title: z.string().min(10).max(120),
     description: z.string().min(80).max(2500),
     priceKes: z.number().int().min(0).max(100000),
@@ -74,7 +67,6 @@ export default defineTool({
     const target = PUBLISHABLE_SITES[site];
     const finalDescription = `${description.trim()}\n\n${PRODUCT_DISCLOSURE}`;
     const startedAt = new Date().toISOString();
-    const logName = site;
 
     try {
       const result = await runTinyFish({
@@ -83,66 +75,41 @@ export default defineTool({
         goal: [
           `Publish exactly one listing for First Income Clarity on ${target.label}.`,
           target.useProfile
-            ? "Use the supplied authenticated browser profile. Do not create a new account, ask for credentials, or expose credentials."
-            : "This site has a public posting form and does not require an account according to the tested workflow.",
+            ? "Use the supplied authorized TinyFish browser context profile if it is already authenticated for this site. Do not create an account, request credentials, or expose credentials."
+            : "Use the site's normal public posting workflow.",
           `Title: ${title}`,
           `Description: ${finalDescription}`,
           `Price: KES ${priceKes}`,
           "Contact email: innocentlabs4@gmail.com",
-          "Use the appropriate education, training, tutoring, or online-service category available on the site.",
-          "Use accurate Kenya service-area information only; do not invent a street address.",
-          "Submit only one listing.",
-          "After submission, verify anonymously/publicly where possible that the listing is actually live and return its public URL.",
-          "If the listing account is not authenticated, stop and report login-required rather than asking for a password.",
-          "If email verification is required, stop and report email-verification-required rather than attempting to access or bypass verification controls.",
-          "If any CAPTCHA, Cloudflare, Turnstile, phone/identity verification, payment gate, or rate-limit challenge appears, stop immediately and report blocked-human-verification or the exact blocker. Never bypass it.",
+          "Choose the most accurate education, training, tutoring, course, digital-service, or services category available.",
+          "Use accurate service-area information only; never invent a street address.",
+          "Submit exactly one listing.",
+          "Verify the resulting public listing after submission. Return its public URL only if verified live.",
+          "If authentication, account creation, email verification, phone verification, identity verification, payment, CAPTCHA, Cloudflare, Turnstile, rate limiting, or a platform automation restriction blocks the workflow, stop and report the exact blocker. Never bypass it.",
+          "If the saved profile is not authenticated for this site, report login-required/profile-not-authenticated; do not ask for a password.",
           "Return JSON with status, liveUrl, titleUsed, reason, and site.",
         ].join("\n"),
         outputSchema: {
           type: "object",
           properties: {
             status: { type: "string", enum: ["published", "skipped", "failed", "blocked-human-verification"] },
-            liveUrl: { type: "string" },
-            titleUsed: { type: "string" },
-            reason: { type: "string" },
-            site: { type: "string" },
+            liveUrl: { type: "string" }, titleUsed: { type: "string" }, reason: { type: "string" }, site: { type: "string" },
           },
           required: ["status", "titleUsed", "reason", "site"],
         },
       });
 
       const record = {
-        timestamp: startedAt,
-        site: target.label,
-        action: "publish",
-        titleContentIdentifier: title,
-        status: String(result.status ?? "failed"),
-        liveUrl: typeof result.liveUrl === "string" ? result.liveUrl : undefined,
+        timestamp: startedAt, site: target.label, action: "publish", titleContentIdentifier: title,
+        status: String(result.status ?? "failed"), liveUrl: typeof result.liveUrl === "string" ? result.liveUrl : undefined,
         reason: typeof result.reason === "string" ? result.reason : undefined,
       };
-
-      await put(`publishing-log/${Date.now()}-${logName}.json`, JSON.stringify(record, null, 2), {
-        access: "private",
-        contentType: "application/json",
-      });
-
+      await put(`publishing-log/${Date.now()}-${site}.json`, JSON.stringify(record, null, 2), { access: "private", contentType: "application/json" });
       return record;
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      const record = {
-        timestamp: startedAt,
-        site: target.label,
-        action: "publish",
-        titleContentIdentifier: title,
-        status: "failed",
-        reason,
-      };
-
-      await put(`publishing-log/${Date.now()}-${logName}.json`, JSON.stringify(record, null, 2), {
-        access: "private",
-        contentType: "application/json",
-      });
-
+      const record = { timestamp: startedAt, site: target.label, action: "publish", titleContentIdentifier: title, status: "failed", reason };
+      await put(`publishing-log/${Date.now()}-${site}.json`, JSON.stringify(record, null, 2), { access: "private", contentType: "application/json" });
       return record;
     }
   },
