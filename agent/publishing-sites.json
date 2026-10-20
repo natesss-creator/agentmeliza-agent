@@ -2,95 +2,22 @@
   "product": "First Income Clarity",
   "inventory_updated": "2026-10-20",
   "sites": [
-    {
-      "platform": "SanaLIST",
-      "domain": "sanalist.co.ke",
-      "status": "candidate",
-      "publishing_authorized": false,
-      "browser_workflow_tested": true,
-      "blocker": "Account/login required; no account was created",
-      "notes": "Normal Sell/Create Listing workflow; no Cloudflare/CAPTCHA encountered during public inspection."
-    },
-    {
-      "platform": "Marketplace Kenya",
-      "domain": "marketplaceke.co.ke",
-      "status": "candidate",
-      "publishing_authorized": false,
-      "browser_workflow_tested": true,
-      "blocker": "Account/login required; no account was created",
-      "notes": "Normal Post Ad workflow; no Cloudflare/CAPTCHA encountered during public inspection."
-    },
-    {
-      "platform": "BusinessFinder Kenya",
-      "domain": "businessfinder.co.ke",
-      "status": "not_recommended",
-      "publishing_authorized": false,
-      "browser_workflow_tested": true,
-      "blocker": "Account/login required and listings are manually reviewed; no authorized publisher/API route found"
-    },
-    {
-      "platform": "Fimbo",
-      "domain": "fimbo.co.ke",
-      "status": "untested",
-      "publishing_authorized": false
-    },
-    {
-      "platform": "BizGO",
-      "domain": "bizgo.co.ke",
-      "status": "untested",
-      "publishing_authorized": false
-    },
-    {
-      "platform": "Bizregistry",
-      "domain": "bizregistry.co.ke",
-      "status": "untested",
-      "publishing_authorized": false
-    },
-    {
-      "platform": "KenyaBizList",
-      "domain": "kenyabizlist.com",
-      "status": "untested",
-      "publishing_authorized": false
-    },
-    {
-      "platform": "Yellow Pages Kenya",
-      "domain": "yellowpageskenya.com",
-      "status": "untested",
-      "publishing_authorized": false
-    },
-    {
-      "platform": "Destinali",
-      "domain": "destinali.com",
-      "status": "untested",
-      "publishing_authorized": false
-    },
-    {
-      "platform": "KobStore",
-      "domain": "kobstore.co.ke",
-      "status": "untested",
-      "publishing_authorized": false
-    },
-    {
-      "platform": "Quora",
-      "domain": "quora.com",
-      "status": "blocked",
-      "publishing_authorized": false,
-      "browser_workflow_tested": true,
-      "blocker": "Cloudflare verification prevented the authorized browser workflow"
-    },
-    {
-      "platform": "Jiji Kenya",
-      "domain": "jiji.co.ke",
-      "status": "skip",
-      "publishing_authorized": false,
-      "blocker": "Platform restrictions make autonomous posting inappropriate"
-    },
-    {
-      "platform": "BusinessList Kenya",
-      "domain": "businesslist.co.ke",
-      "status": "skip",
-      "publishing_authorized": false,
-      "blocker": "Platform terms prohibit automation"
-    }
+    {"platform":"KenyaClassified","domain":"kenyaclassified.co.ke","status":"ready_candidate","publishing_authorized":false,"browser_workflow_tested":true,"blocker":"None in public workflow; no account required","notes":"Posting form accepts title, description and email; no login, CAPTCHA, Cloudflare, phone/identity verification, or payment observed."},
+    {"platform":"KenyaBizList","domain":"kenyabizlist.com","status":"candidate","publishing_authorized":false,"browser_workflow_tested":true,"blocker":"Account/login required; no account was created","notes":"Post Classified Ad and Add Business flows work; Google sign-in or email/password; no CAPTCHA, Cloudflare, Turnstile, phone or identity verification observed."},
+    {"platform":"KobStore","domain":"kobstore.co.ke","status":"candidate","publishing_authorized":false,"browser_workflow_tested":true,"blocker":"Seller registration and email verification required","notes":"Free Foundation plan; no CAPTCHA, Cloudflare, phone/identity verification, or payment required before first free listing."},
+    {"platform":"Marketplace Kenya","domain":"marketplaceke.co.ke","status":"candidate","publishing_authorized":false,"browser_workflow_tested":true,"blocker":"Account/login required; no account was created","notes":"Normal Post Ad workflow; no CAPTCHA, Cloudflare, Turnstile, phone/identity verification, or payment gate observed."},
+    {"platform":"SanaLIST","domain":"sanalist.co.ke","status":"candidate","publishing_authorized":false,"browser_workflow_tested":true,"blocker":"Account/login required; no account was created","notes":"Normal Sell/Create Listing workflow; no Cloudflare/CAPTCHA encountered during public inspection."},
+    {"platform":"Nefxi","domain":"nefxi.com","status":"candidate","publishing_authorized":false,"browser_workflow_tested":false,"blocker":"Seller account/review required; not yet browser-tested"},
+    {"platform":"BusinessFinder Kenya","domain":"businessfinder.co.ke","status":"not_recommended","publishing_authorized":false,"browser_workflow_tested":true,"blocker":"Account/login required and listings are manually reviewed; no authorized publisher/API route found"},
+    {"platform":"Fimbo","domain":"fimbo.co.ke","status":"untested","publishing_authorized":false},
+    {"platform":"BizGO","domain":"bizgo.co.ke","status":"untested","publishing_authorized":false},
+    {"platform":"Bizregistry","domain":"bizregistry.co.ke","status":"untested","publishing_authorized":false},
+    {"platform":"Yellow Pages Kenya","domain":"yellowpageskenya.com","status":"untested","publishing_authorized":false},
+    {"platform":"Destinali","domain":"destinali.com","status":"untested","publishing_authorized":false},
+    {"platform":"Quora","domain":"quora.com","status":"blocked","publishing_authorized":false,"browser_workflow_tested":true,"blocker":"Cloudflare verification prevented the authorized browser workflow"},
+    {"platform":"Jiji Kenya","domain":"jiji.co.ke","status":"skip","publishing_authorized":false,"blocker":"Platform restrictions make autonomous posting inappropriate"},
+    {"platform":"BusinessList Kenya","domain":"businesslist.co.ke","status":"skip","publishing_authorized":false,"blocker":"Platform terms prohibit automation"},
+    {"platform":"PigiaMe","domain":"pigiame.co.ke","status":"paused","publishing_authorized":false,"blocker":"Maintenance reported during setup attempt"},
+    {"platform":"Locanto","domain":"locanto.co.ke","status":"blocked","publishing_authorized":false,"blocker":"Cloudflare verification during setup"}
   ]
 }
