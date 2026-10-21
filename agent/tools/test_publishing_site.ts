@@ -1,7 +1,7 @@
 import { put } from "@vercel/blob";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getPublishingChannel, publishingChannelKeys } from "./publishing-registry";
+import { getPublishingChannel, publishingChannelKeys } from "../publishing-registry";
 
 export default defineTool({
   description:
