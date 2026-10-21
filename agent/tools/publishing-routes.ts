@@ -15,9 +15,26 @@ export function resolvePublishingRoute(channel: PublishingChannel): PublishingRo
   return channel.mode;
 }
 
+function envKey(site: string, suffix: string) {
+  return `${site.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_${suffix}`;
+}
+
+function extractLiveUrl(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  const candidates = [record.liveUrl, record.url, record.listingUrl, record.publicUrl];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && /^https:\/\//i.test(candidate)) return candidate;
+  }
+  return undefined;
+}
+
 /**
- * Non-browser routes are deliberately configuration-driven. Meliza must never
- * invent an endpoint or claim publication without platform evidence.
+ * Executes only explicitly configured non-browser routes.
+ * The adapter is intentionally generic: each platform supplies its own
+ * official endpoint and credentials. Meliza never invents endpoints,
+ * bypasses access controls, or treats an HTTP request as publication unless
+ * the platform response supplies publication evidence.
  */
 export async function executeConfiguredRoute(input: {
   channel: PublishingChannel;
@@ -27,31 +44,86 @@ export async function executeConfiguredRoute(input: {
 }): Promise<RouteResult> {
   const route = resolvePublishingRoute(input.channel);
 
+  if (route === "browser") {
+    return {
+      status: "blocked-human-verification",
+      route,
+      reason: "Browser automation is disabled. Use an official API, authorized webhook, or authorized publishing email route instead.",
+    };
+  }
+
   if (route === "manual") {
     return { status: "manual_required", route, reason: "No authorized automated route is configured for this channel." };
   }
 
   if (route === "api" || route === "webhook") {
-    const endpoint = process.env[`${input.channel.key.toUpperCase()}_PUBLISH_ENDPOINT`];
+    const endpoint = process.env[envKey(input.channel.key, "PUBLISH_ENDPOINT")];
     if (!endpoint) {
       return { status: "manual_required", route, reason: `No configured ${route} endpoint for ${input.channel.label}.` };
     }
-    return { status: "attempted", route, reason: `Configured ${route} route is available but requires a channel-specific adapter and publication evidence.` };
+
+    let parsed: URL;
+    try {
+      parsed = new URL(endpoint);
+      if (parsed.protocol !== "https:") throw new Error("Publishing endpoints must use HTTPS.");
+    } catch (error) {
+      return { status: "failed", route, reason: `Invalid publishing endpoint: ${error instanceof Error ? error.message : String(error)}` };
+    }
+
+    const apiKey = process.env[envKey(input.channel.key, "PUBLISH_API_KEY")];
+    const payload = {
+      title: input.title,
+      description: input.description,
+      priceKes: input.priceKes,
+      source: "meliza",
+      requestedAt: new Date().toISOString(),
+    };
+
+    try {
+      const response = await fetch(parsed, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      const text = await response.text();
+      let body: unknown = undefined;
+      try { body = text ? JSON.parse(text) : undefined; } catch { body = undefined; }
+
+      if (!response.ok) {
+        return { status: "failed", route, reason: `Publishing endpoint returned HTTP ${response.status}.` };
+      }
+
+      const liveUrl = extractLiveUrl(body);
+      if (!liveUrl) {
+        return { status: "attempted", route, reason: "Endpoint accepted the request but returned no independently verifiable liveUrl/publicUrl/listingUrl." };
+      }
+
+      return { status: "published", route, liveUrl, reason: "Official configured route returned a public listing URL." };
+    } catch (error) {
+      return { status: "failed", route, reason: `Publishing request failed: ${error instanceof Error ? error.message : String(error)}` };
+    }
   }
 
   if (route === "email") {
-    const recipient = process.env[`${input.channel.key.toUpperCase()}_PUBLISH_EMAIL`];
+    const recipient = process.env[envKey(input.channel.key, "PUBLISH_EMAIL")];
     if (!recipient) {
       return { status: "manual_required", route, reason: `No authorized publish-by-email destination is configured for ${input.channel.label}.` };
     }
-    return { status: "attempted", route, reason: `Publish-by-email destination is configured; delivery must be handled by an authorized mail connector and verified independently.` };
+    return {
+      status: "attempted",
+      route,
+      reason: `Authorized publish-by-email destination is configured at ${recipient}; an approved mail connector must deliver and independently verify the resulting listing.`,
+    };
   }
 
-  return { status: "blocked-human-verification", route: "browser", reason: "Browser automation provider is unavailable; do not bypass authentication or verification controls." };
+  return { status: "manual_required", route, reason: "No executable authorized route is configured." };
 }
 
 export default defineTool({
-  description: "Resolve a registered publishing channel to its configured route. This tool never bypasses authentication, CAPTCHA, Cloudflare, Turnstile, payment gates, or platform restrictions and never claims publication without independent evidence.",
+  description: "Execute only explicitly configured API, webhook, or authorized email publishing routes. Browser automation is disabled. Never bypass authentication, CAPTCHA, Cloudflare, Turnstile, payment gates, rate limits, or platform restrictions. Never claim publication without platform evidence and independent URL verification.",
   inputSchema: z.object({
     site: z.string().min(1),
     title: z.string().min(1),
@@ -59,6 +131,6 @@ export default defineTool({
     priceKes: z.number().int().min(0),
   }),
   async execute() {
-    return { status: "manual_required" as const, route: "manual" as const, reason: "Route execution is performed by the production publisher after channel authorization; this tool does not publish by itself." };
+    return { status: "manual_required" as const, route: "manual" as const, reason: "The production publisher executes only registry-approved configured routes." };
   },
 });
