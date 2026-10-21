@@ -1,4 +1,4 @@
-export type PublishingChannelMode = "api" | "browser" | "manual";
+export type PublishingChannelMode = "api" | "browser" | "email" | "webhook" | "manual";
 export type PublishingChannelStatus =
   | "ready"
   | "authorized_test_required"
@@ -19,7 +19,7 @@ export type PublishingChannel = {
   liveEnabled: boolean;
 };
 
-/** Runtime registry. Inventory/discovery is separate from live execution. */
+/** Runtime registry. Discovery/testing is separate from live execution. */
 export const PUBLISHING_CHANNELS: Record<string, PublishingChannel> = {
   kenyaclassified: { key: "kenyaclassified", label: "KenyaClassified", url: "https://kenyaclassified.co.ke/index.php?page=item&action=item_add", mode: "browser", status: "ready", useProfile: false, liveEnabled: true },
   kobstore: { key: "kobstore", label: "KobStore", url: "https://www.kobstore.co.ke/register", mode: "browser", status: "authorized_test_required", useProfile: true, liveEnabled: false },
