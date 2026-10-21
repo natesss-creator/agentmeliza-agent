@@ -1,3 +1,5 @@
+import { defineTool } from "eve/tools";
+import { z } from "zod";
 import type { PublishingChannel } from "../publishing-registry";
 
 export type PublishingRoute = "api" | "browser" | "email" | "webhook" | "manual";
@@ -47,3 +49,16 @@ export async function executeConfiguredRoute(input: {
 
   return { status: "blocked-human-verification", route: "browser", reason: "Browser automation provider is unavailable; do not bypass authentication or verification controls." };
 }
+
+export default defineTool({
+  description: "Resolve a registered publishing channel to its configured route. This tool never bypasses authentication, CAPTCHA, Cloudflare, Turnstile, payment gates, or platform restrictions and never claims publication without independent evidence.",
+  inputSchema: z.object({
+    site: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    priceKes: z.number().int().min(0),
+  }),
+  async execute() {
+    return { status: "manual_required" as const, route: "manual" as const, reason: "Route execution is performed by the production publisher after channel authorization; this tool does not publish by itself." };
+  },
+});
