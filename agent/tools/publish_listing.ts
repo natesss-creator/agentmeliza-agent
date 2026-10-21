@@ -2,17 +2,18 @@ import { put } from "@vercel/blob";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getPublishingChannel, publishingChannelKeys } from "../publishing-registry";
+import { executeConfiguredRoute } from "./publishing-routes";
 
 const PRODUCT_DISCLOSURE =
   "Paid course: KES 2,500 one-time. Lifetime access. No upsells. Link: https://groketer.com/firstincome";
 
 async function runTinyFish(input: { url: string; goal: string; outputSchema: Record<string, unknown>; useProfile: boolean }) {
   const apiKey = process.env.TINYFISH_API_KEY;
-  if (!apiKey) throw new Error("TINYFISH_API_KEY is not configured.");
+  if (!apiKey) throw new Error("Browser route unavailable: TINYFISH_API_KEY is not configured.");
   const body: Record<string, unknown> = { url: input.url, goal: input.goal, browser_profile: "lite", output_schema: input.outputSchema };
   if (input.useProfile) {
     const profileId = process.env.TINYFISH_PROFILE_ID;
-    if (!profileId) throw new Error("TINYFISH_PROFILE_ID is not configured for authenticated publishing sites.");
+    if (!profileId) throw new Error("Browser route unavailable: TINYFISH_PROFILE_ID is not configured.");
     body.use_profile = true;
     body.profile_id = profileId;
   }
@@ -21,7 +22,7 @@ async function runTinyFish(input: { url: string; goal: string; outputSchema: Rec
     headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`TinyFish returned HTTP ${response.status}: ${await response.text()}`);
+  if (!response.ok) throw new Error(`Browser provider returned HTTP ${response.status}: ${await response.text()}`);
   return response.json() as Promise<Record<string, unknown>>;
 }
 
@@ -44,16 +45,24 @@ async function writeLog(record: Record<string, unknown>) {
 }
 
 export default defineTool({
-  description: "Production publisher for explicitly enabled channels. Discovery and testing are separate from live execution. Never bypass CAPTCHA, Cloudflare, Turnstile, login, phone/identity verification, payment gates, email verification, rate limits, or platform restrictions. Only an independently verified public listing may be reported as published.",
+  description: "Production publisher with configurable API, browser, email, webhook, and manual routes. Discovery/testing are separate from live execution. Never bypass CAPTCHA, Cloudflare, Turnstile, login, phone/identity verification, payment gates, rate limits, or platform restrictions. Only an independently verified public listing may be reported as published.",
   inputSchema: z.object({ site: z.enum(publishingChannelKeys), title: z.string().min(10).max(120), description: z.string().min(80).max(2500), priceKes: z.number().int().min(0).max(100000) }),
   async execute({ site, title, description, priceKes }) {
     const target = getPublishingChannel(site);
     const startedAt = new Date().toISOString();
     if (!target) { const record = { timestamp: startedAt, site, action: "publish", titleContentIdentifier: title, status: "skipped", reason: "Channel is not registered." }; await writeLog(record); return record; }
     if (!target.liveEnabled || target.status !== "ready") {
-      const record = { timestamp: startedAt, site: target.label, action: "publish", titleContentIdentifier: title, status: "skipped", reason: `Live publishing is disabled. Registry status=${target.status}.` };
+      const record = { timestamp: startedAt, site: target.label, action: "publish", route: target.mode, titleContentIdentifier: title, status: "skipped", reason: `Live publishing is disabled. Registry status=${target.status}.` };
       await writeLog(record); return record;
     }
+
+    if (target.mode !== "browser") {
+      const routed = await executeConfiguredRoute({ channel: target, title, description, priceKes });
+      const record = { timestamp: startedAt, site: target.label, action: "publish", route: routed.route, titleContentIdentifier: title, status: routed.status, liveUrl: routed.liveUrl, reason: routed.reason };
+      await writeLog(record);
+      return record;
+    }
+
     try {
       const result = await runTinyFish({
         url: target.url,
@@ -75,12 +84,12 @@ export default defineTool({
       let reason = typeof result.reason === "string" ? result.reason : undefined;
       let liveUrl: string | undefined;
       if (returnedStatus === "published") {
-        if (verification.verified) { status = "published"; liveUrl = verification.liveUrl; } else { status = "failed"; reason = `TinyFish reported published, but independent verification failed: ${verification.reason}`; }
+        if (verification.verified) { status = "published"; liveUrl = verification.liveUrl; } else { status = "failed"; reason = `Browser provider reported published, but independent verification failed: ${verification.reason}`; }
       } else if (returnedLiveUrl && verification.verified) { status = "failed"; reason = `Automation returned status '${returnedStatus}', so the listing is not counted as published.`; }
-      const record = { timestamp: startedAt, site: target.label, action: "publish", titleContentIdentifier: title, status, liveUrl, reason };
+      const record = { timestamp: startedAt, site: target.label, action: "publish", route: "browser", titleContentIdentifier: title, status, liveUrl, reason };
       await writeLog(record); return record;
     } catch (error) {
-      const record = { timestamp: startedAt, site: target.label, action: "publish", titleContentIdentifier: title, status: "failed", reason: error instanceof Error ? error.message : String(error) };
+      const record = { timestamp: startedAt, site: target.label, action: "publish", route: "browser", titleContentIdentifier: title, status: "failed", reason: error instanceof Error ? error.message : String(error) };
       await writeLog(record); return record;
     }
   },
