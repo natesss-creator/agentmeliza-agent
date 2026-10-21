@@ -51,9 +51,52 @@ async function runTinyFish(input: {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
+async function verifyPublicListingUrl(value: unknown, expectedTitle: string) {
+  if (typeof value !== "string" || !value.trim()) {
+    return { verified: false, reason: "No live listing URL was returned." };
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return { verified: false, reason: "Returned liveUrl is not a valid URL." };
+  }
+
+  if (url.protocol !== "https:") {
+    return { verified: false, reason: "Returned liveUrl is not HTTPS." };
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: { "User-Agent": "Meliza-Publication-Verifier/1.0" },
+    });
+
+    if (!response.ok) {
+      return { verified: false, reason: `Live URL verification returned HTTP ${response.status}.` };
+    }
+
+    const finalUrl = response.url || url.toString();
+    const body = await response.text();
+    const normalizedBody = body.toLowerCase();
+    const normalizedTitle = expectedTitle.trim().toLowerCase();
+
+    if (normalizedTitle && !normalizedBody.includes(normalizedTitle)) {
+      return { verified: false, reason: "Live URL is reachable, but the published page does not contain the expected title." };
+    }
+
+    return { verified: true, liveUrl: finalUrl };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { verified: false, reason: `Live URL verification failed: ${reason}` };
+  }
+}
+
 export default defineTool({
   description:
-    "Publish one compliant First Income Clarity listing to an explicitly authorized allowlisted site. Authenticated sites use the owner's saved TinyFish browser context profile. This tool may test authorized sites and promote only successful verified submissions to published status. Never bypass CAPTCHA, Cloudflare, Turnstile, login, phone/identity verification, payment gates, email verification, rate limits, or platform restrictions. Return the verified live URL or exact blocker. Do not invent URLs or claim a listing is live without verification.",
+    "Publish one compliant First Income Clarity listing to an explicitly authorized allowlisted site. Authenticated sites use the owner's saved TinyFish browser context profile. This tool may test authorized sites and promote only successful independently verified submissions to published status. Never bypass CAPTCHA, Cloudflare, Turnstile, login, phone/identity verification, payment gates, email verification, rate limits, or platform restrictions. A TinyFish completed/published response is NOT proof of publication. Return published only after this server independently fetches the returned public URL and confirms it is reachable and contains the expected title. Do not invent URLs or claim a listing is live without verification.",
   inputSchema: z.object({
     site: z.enum([
       "kenyaclassified", "kobstore", "postadz", "listitglobal", "bizilisting", "foxyads",
@@ -84,7 +127,7 @@ export default defineTool({
           "Choose the most accurate education, training, tutoring, course, digital-service, or services category available.",
           "Use accurate service-area information only; never invent a street address.",
           "Submit exactly one listing.",
-          "Verify the resulting public listing after submission. Return its public URL only if verified live.",
+          "Return the resulting public listing URL only if you actually reached the published listing page.",
           "If authentication, account creation, email verification, phone verification, identity verification, payment, CAPTCHA, Cloudflare, Turnstile, rate limiting, or a platform automation restriction blocks the workflow, stop and report the exact blocker. Never bypass it.",
           "If the saved profile is not authenticated for this site, report login-required/profile-not-authenticated; do not ask for a password.",
           "Return JSON with status, liveUrl, titleUsed, reason, and site.",
@@ -99,10 +142,34 @@ export default defineTool({
         },
       });
 
+      const returnedStatus = String(result.status ?? "failed");
+      const returnedLiveUrl = typeof result.liveUrl === "string" ? result.liveUrl : undefined;
+      const verification = await verifyPublicListingUrl(returnedLiveUrl, title);
+
+      let status: "published" | "skipped" | "failed" | "blocked-human-verification" =
+        returnedStatus === "skipped" || returnedStatus === "blocked-human-verification" || returnedStatus === "failed"
+          ? returnedStatus
+          : "failed";
+      let reason = typeof result.reason === "string" ? result.reason : undefined;
+      let liveUrl: string | undefined;
+
+      if (returnedStatus === "published") {
+        if (verification.verified) {
+          status = "published";
+          liveUrl = verification.liveUrl;
+        } else {
+          status = "failed";
+          reason = `TinyFish reported published, but independent verification failed: ${verification.reason}`;
+        }
+      } else if (returnedLiveUrl && verification.verified) {
+        status = "failed";
+        reason = `Automation returned status '${returnedStatus}', so the listing is not counted as published even though the URL was reachable.`;
+      }
+
       const record = {
         timestamp: startedAt, site: target.label, action: "publish", titleContentIdentifier: title,
-        status: String(result.status ?? "failed"), liveUrl: typeof result.liveUrl === "string" ? result.liveUrl : undefined,
-        reason: typeof result.reason === "string" ? result.reason : undefined,
+        status, liveUrl,
+        reason,
       };
       await put(`publishing-log/${Date.now()}-${site}.json`, JSON.stringify(record, null, 2), { access: "private", contentType: "application/json" });
       return record;
