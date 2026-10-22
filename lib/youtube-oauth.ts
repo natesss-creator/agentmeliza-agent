@@ -81,8 +81,13 @@ export async function fetchYoutubeChannel(accessToken: string) {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const data = await response.json();
-  if (!response.ok || !data.items?.[0]) {
+  if (!response.ok) {
     throw new Error(`YouTube channel lookup failed: ${data.error?.message || response.status}`);
+  }
+  if (!data.items?.[0]) {
+    throw new Error(
+      "Google authorization succeeded, but this account has no YouTube channel available to Meliza. Create a YouTube channel for the authorized Google account, then reconnect YouTube."
+    );
   }
   const item = data.items[0];
   return { id: item.id as string, title: item.snippet?.title as string, url: `https://www.youtube.com/channel/${item.id}` };
