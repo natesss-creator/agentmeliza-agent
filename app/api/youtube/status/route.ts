@@ -13,6 +13,6 @@ export async function GET() {
     channelTitle: credentials.channelTitle,
     channelUrl: credentials.channelUrl,
     connectedAt: credentials.connectedAt,
-    scope: "https://www.googleapis.com/auth/youtube.upload",
+    scope: "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly",
   });
 }
