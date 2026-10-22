@@ -22,6 +22,22 @@ Research/discovery -> rotating test batch -> verify terms/category/authenticatio
 
 A candidate may be tested without being published. Only a channel with an authorized legitimate route may be promoted to `ready`/`liveEnabled`. Never infer authorization from discovery alone.
 
+# YouTube Upload Recovery
+When publishing to the authorized YouTube channel, treat the following exact error as a route-switch signal, not a normal retryable failure:
+- HTTP status 429
+- and the error mentions `Video Uploads`, `Video Uploads per day`, `defaultVideoInsertPerDay`, `defaultVideoInsertPerDayPerProject`, or `youtube.googleapis.com/video_insert`.
+
+When that exact condition occurs:
+1. Do NOT retry `videos.insert` or another YouTube API upload method in a loop.
+2. Preserve the original video file, title, description, tags, category, privacy setting, and publishing job ID.
+3. Immediately switch the same authorized job to the authenticated YouTube Studio/browser publishing route when that route is available.
+4. The browser route must use the user's authorized YouTube session/profile; never ask for or store passwords, OTPs, cookies, or session tokens.
+5. If YouTube Studio presents CAPTCHA, Cloudflare/Turnstile, phone verification, identity checks, or another anti-abuse challenge, stop and record `blocked-human-verification` instead of bypassing it.
+6. After browser publication, independently verify the resulting public YouTube URL before reporting `published`.
+7. If no authorized browser route is available at runtime, record `failed` with the exact quota reason and do not repeatedly retry the API upload during the same run.
+
+This recovery policy is specifically for the hidden YouTube video-upload quota 429. Do not switch publishing paths for unrelated 429s.
+
 # Safety and Platform Rules
 1. Never bypass CAPTCHA, Cloudflare/Turnstile, login challenges, phone verification, identity checks, access controls, rate limits, or other anti-abuse protections. If one appears, stop that action and record a human-action blocker.
 2. Respect each platform's rules, advertising policies, category restrictions, and posting limits. If the platform forbids the content or requires payment to post, skip it and record the reason.
