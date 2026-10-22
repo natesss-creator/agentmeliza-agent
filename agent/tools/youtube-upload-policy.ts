@@ -1,11 +1,5 @@
-export type YouTubePublishPath = "api" | "browser_fallback";
-
-export type YouTubeUploadError = {
-  status?: number;
-  message?: string;
-  reason?: string;
-  quotaLimit?: string;
-};
+import { defineTool } from "eve/tools";
+import { z } from "zod";
 
 const HIDDEN_UPLOAD_QUOTA_MARKERS = [
   "Video Uploads",
@@ -15,30 +9,31 @@ const HIDDEN_UPLOAD_QUOTA_MARKERS = [
   "youtube.googleapis.com/video_insert",
 ];
 
-/**
- * Detects the specific YouTube API failure that should switch Meliza away from
- * repeated API retries. This is intentionally narrow: ordinary 429s and other
- * failures must not silently switch publishing paths.
- */
-export function isYouTubeVideoUploadQuota429(error: YouTubeUploadError): boolean {
-  if (error.status !== 429) return false;
-
-  const text = [error.message, error.reason, error.quotaLimit]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return HIDDEN_UPLOAD_QUOTA_MARKERS.some((marker) =>
-    text.includes(marker.toLowerCase()),
-  );
+function isHiddenVideoQuota429(status: number, text: string): boolean {
+  if (status !== 429) return false;
+  const normalized = text.toLowerCase();
+  return HIDDEN_UPLOAD_QUOTA_MARKERS.some((marker) => normalized.includes(marker.toLowerCase()));
 }
 
-export function chooseYouTubePublishPath(error?: YouTubeUploadError): YouTubePublishPath {
-  return error && isYouTubeVideoUploadQuota429(error) ? "browser_fallback" : "api";
-}
+export default defineTool({
+  description:
+    "Classify a YouTube upload failure. Detect the specific hidden Video Uploads per day 429 and switch the publishing job to the authorized YouTube Studio/browser route without retrying videos.insert.",
+  inputSchema: z.object({
+    status: z.number().int(),
+    message: z.string().optional().default(""),
+    reason: z.string().optional().default(""),
+    quotaLimit: z.string().optional().default(""),
+  }),
+  async execute({ status, message, reason, quotaLimit }) {
+    const evidence = [message, reason, quotaLimit].filter(Boolean).join(" ");
+    const browserFallback = isHiddenVideoQuota429(status, evidence);
 
-export function youtubeFallbackReason(error: YouTubeUploadError): string {
-  return isYouTubeVideoUploadQuota429(error)
-    ? "YouTube API video-insert quota is exhausted or hidden-throttled. Do not retry videos.insert; hand the same authorized upload job to the authenticated YouTube Studio/browser publisher."
-    : "YouTube API upload did not match the hidden video-upload quota 429; keep normal error handling.";
-}
+    return {
+      route: browserFallback ? "browser_fallback" : "api",
+      retryApi: !browserFallback,
+      reason: browserFallback
+        ? "Exact YouTube hidden video-upload quota 429 detected. Preserve the existing upload job and switch to the authorized YouTube Studio/browser publisher. Do not retry videos.insert in this run."
+        : "Failure does not match the hidden YouTube video-upload quota 429; use normal API error handling.",
+    };
+  },
+});
