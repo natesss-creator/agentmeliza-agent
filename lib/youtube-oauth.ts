@@ -2,7 +2,11 @@ import { get, put } from "@vercel/blob";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 const TOKEN_PATH = "integrations/youtube/credentials.json";
-const SCOPES = "https://www.googleapis.com/auth/youtube.upload";
+// Channel lookup uses channels.list?mine=true, which requires read access in addition to upload.
+const SCOPES = [
+  "https://www.googleapis.com/auth/youtube.upload",
+  "https://www.googleapis.com/auth/youtube.readonly",
+].join(" ");
 
 function required(name: string): string {
   const value = process.env[name];
