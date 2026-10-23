@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     return {status:"published",url:live,confirmation:final.slice(-1000)};
   };`;
   const target = "https://kenyaclassified.co.ke/index.php?page=item&action=item_add";
-  const response = await fetch(`${ORIGIN}/function?token=${encodeURIComponent(token)}&profile=${encodeURIComponent(profile)}&timeout=180000`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,context:{target,title,description,price:"2500"}})});
+  const response = await fetch(`${ORIGIN}/function?token=${encodeURIComponent(token)}&profile=${encodeURIComponent(profile)}&timeout=120000`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,context:{target,title,description,price:"2500"}})});
   const raw=await response.text();
   if(!response.ok) return NextResponse.json({status:"failed",reason:raw.slice(0,2000)},{status:502});
   try{return NextResponse.json(JSON.parse(raw))}catch{return NextResponse.json({status:"unknown",raw:raw.slice(0,4000)})}
