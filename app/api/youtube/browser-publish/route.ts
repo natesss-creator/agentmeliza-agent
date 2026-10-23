@@ -37,6 +37,7 @@ export async function GET(request: Request) {
       await sleep(2000);
       const body = await text();
       if (/sign in|choose an account|accounts.google.com/i.test(body) && !/Upload videos/i.test(body)) return {status:"needs_profile"};
+      if (/captcha|cloudflare|turnstile|verify you are human|phone verification|identity verification/i.test(body)) return {status:"blocked-human-verification"};
       await page.waitForSelector('input[type="file"]', {visible:true, timeout:30000});
       const r = await fetch(context.videoData);
       if (!r.ok) throw new Error("Video fetch failed: HTTP " + r.status);
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
     };
   `;
 
-  const response = await fetch(`${ORIGIN}/function?token=${encodeURIComponent(token)}&profile=${encodeURIComponent(profile)}&timeout=180000`, {
+  const response = await fetch(`${ORIGIN}/function?token=${encodeURIComponent(token)}&profile=${encodeURIComponent(profile)}&timeout=120000`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code, context: { profile, videoData, title, description } }),
