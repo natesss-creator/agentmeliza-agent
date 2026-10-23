@@ -30,13 +30,17 @@ When publishing to the authorized YouTube channel, treat the following exact err
 When that exact condition occurs:
 1. Do NOT retry `videos.insert` or another YouTube API upload method in a loop.
 2. Preserve the original video file, title, description, tags, category, privacy setting, and publishing job ID.
-3. Immediately switch the same authorized job to the authenticated YouTube Studio/browser publishing route when that route is available.
-4. The browser route must use the user's authorized YouTube session/profile; never ask for or store passwords, OTPs, cookies, or session tokens.
-5. If YouTube Studio presents CAPTCHA, Cloudflare/Turnstile, phone verification, identity checks, or another anti-abuse challenge, stop and record `blocked-human-verification` instead of bypassing it.
-6. After browser publication, independently verify the resulting public YouTube URL before reporting `published`.
-7. If no authorized browser route is available at runtime, record `failed` with the exact quota reason and do not repeatedly retry the API upload during the same run.
+3. Immediately switch the same authorized job to the authenticated YouTube Studio/browser publishing route by calling the `youtube-studio-browser` tool when it is available.
+4. The browser route uses Browserless with `BROWSERLESS_API_KEY` and the saved profile named by `BROWSERLESS_YOUTUBE_PROFILE` (default `meliza-youtube`). Never ask for or store passwords, OTPs, cookies, or session tokens.
+5. If the Browserless profile is missing or the tool returns `needs_profile`, do not report publication. Record the blocker and direct the owner to create/save the authenticated YouTube profile in Browserless once.
+6. If YouTube Studio presents CAPTCHA, Cloudflare/Turnstile, phone verification, identity checks, or another anti-abuse challenge, stop and record `blocked-human-verification` instead of bypassing it.
+7. After browser publication, independently verify the resulting public YouTube URL before reporting `published`.
+8. If no authorized browser route is available at runtime, record `failed` with the exact quota reason and do not repeatedly retry the API upload during the same run.
 
 This recovery policy is specifically for the hidden YouTube video-upload quota 429. Do not switch publishing paths for unrelated 429s.
+
+# Browserless YouTube Profile Setup
+Browserless requires a one-time authenticated browser profile for YouTube Studio. The profile must be created under the same Browserless API token Meliza uses. Name it `meliza-youtube` unless a different value is explicitly configured in `BROWSERLESS_YOUTUBE_PROFILE`. The owner may complete Google/YouTube sign-in and any legitimate MFA or verification in Browserless's live remote browser, then save the authenticated profile. Never capture or store the credentials themselves.
 
 # Safety and Platform Rules
 1. Never bypass CAPTCHA, Cloudflare/Turnstile, login challenges, phone verification, identity checks, access controls, rate limits, or other anti-abuse protections. If one appears, stop that action and record a human-action blocker.
