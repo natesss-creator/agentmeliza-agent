@@ -15,7 +15,7 @@ export const runtime = "nodejs";
  */
 export async function GET(_req: Request, { params }: { params: Promise<{ file: string }> }) {
   const { file } = await params;
-  const m = file.match(/^uh-(\d+)-(a|b)\.jpe?g$/i);
+  const m = file.match(/^uh-(\d+)-(a|b)\.(jpe?g|b64)$/i);
   if (!m) return new Response("Not found", { status: 404 });
 
   const postType = await detectPropertyType();
@@ -24,6 +24,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ file: s
   const p = toPosterData(toListing(post));
 
   const jpeg = await renderPoster(p, m[2].toLowerCase() === "b" ? "b" : "a");
+
+  // .b64 serves the same JPEG as base64 text, for previewing posters in tools that only handle text.
+  if (m[3].toLowerCase() === "b64") {
+    return new Response(jpeg.toString("base64"), { headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" } });
+  }
 
   return new Response(new Uint8Array(jpeg), {
     headers: {
