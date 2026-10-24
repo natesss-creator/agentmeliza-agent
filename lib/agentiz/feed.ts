@@ -77,6 +77,7 @@ export type Listing = {
     deposit_base_sum?: number;
   };
   images: string[]; // public https URLs: jpg, jpeg, png, gif, webp; <=20MB each
+  review?: string; // set by an importer when a value looks wrong; the listing is held back
 };
 
 export type ValidationIssue = { external_id: string; field: string; message: string };
@@ -138,8 +139,9 @@ export function validateListing(l: Listing): ValidationIssue[] {
     if ((l.text?.[lang]?.length ?? 0) > 5000) add(`text.${lang}`, "max 5000 characters");
   }
 
-  if (l.deal_type === "sale" && !l.price?.sum_total) add("price.sum_total", "required for sale");
-  if (l.deal_type === "rent" && !l.price?.per_month) add("price.per_month", "required for rent");
+  if (l.review) add("review", l.review);
+  else if (l.deal_type === "sale" && !l.price?.sum_total) add("price.sum_total", "no total KES price found in the title or description");
+  else if (l.deal_type === "rent" && !l.price?.per_month) add("price.per_month", "no monthly KES rent found in the title or description");
 
   if (!l.images?.length) add("images", "at least one photo recommended");
   for (const url of l.images || []) {

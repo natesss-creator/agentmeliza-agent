@@ -41,7 +41,11 @@ export async function GET(request: Request) {
         postType,
         fetched: posts.length,
         included: feed.included.length,
-        skipped: feed.skipped,
+        skipped: feed.skipped.map((s) => ({
+          ...s,
+          title: listings.find((l) => l.external_id === s.external_id)?.title.en,
+          link: listings.find((l) => l.external_id === s.external_id)?.info_link,
+        })),
         contactPhoneSet: Boolean(contacts().phone_number),
         fields: describeFields(posts),
       });

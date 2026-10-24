@@ -184,17 +184,24 @@ const MULT: Record<string, number> = { billion: 1e9, bn: 1e9, b: 1e9, million: 1
  */
 export function parseKes(text: string): { amount?: number; perMonth: boolean; perUnit: boolean } {
   const re = /(?:KES|KSHS?\.?|Kshs?\.?|Sh\.?)\s*([\d][\d,]*(?:\.\d+)?)\s*(billion|bn|million|mn|thousand|[bmk])?\b/gi;
+  const UNIT = /(acre|plot|eighth|1\/8|⅛|unit|sq|square|ft|feet|metre|meter|room|bed)/;
   let perUnit = false;
   for (const m of text.matchAll(re)) {
-    const after = text.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 30).toLowerCase();
-    if (/^\s*(per|\/|each)\s*(acre|plot|eighth|1\/8|unit|sq|square|ft)/.test(after)) {
-      perUnit = true;
-      continue;
-    }
+    const start = m.index ?? 0;
+    const after = text.slice(start + m[0].length, start + m[0].length + 30).toLowerCase();
+    const before = text.slice(Math.max(0, start - 25), start).toLowerCase();
     const base = Number(m[1].replace(/,/g, ""));
     const amount = Math.round(base * (m[2] ? MULT[m[2].toLowerCase()] ?? 1 : 1));
     if (!Number.isFinite(amount) || amount < 1000) continue;
-    return { amount, perMonth: /^\s*(per\s*month|\/\s*month|p\.?m\b|monthly)/.test(after), perUnit };
+    if (/^\s*(per|\/|an?|each|for each)\s*month\b|^\s*(p\.?m\b|monthly)/.test(after) || /\b(rent|per month)\b[^.]{0,15}$/.test(before)) {
+      return { amount, perMonth: true, perUnit };
+    }
+    // "KES 3.5M per acre", "3.5M an acre", "/acre", "per acre: KES 3.5M"
+    if (new RegExp(`^\\s*(per|\\/|an?|each|for each)\\s*${UNIT.source}`).test(after) || new RegExp(`\\b(per|each)\\s*${UNIT.source}\\w*\\s*(is|at|of|:|-|–)?\\s*$`).test(before)) {
+      perUnit = true;
+      continue;
+    }
+    return { amount, perMonth: false, perUnit };
   }
   return { perMonth: false, perUnit };
 }
@@ -202,26 +209,58 @@ export function parseKes(text: string): { amount?: number; perMonth: boolean; pe
 const ACRE_M2 = 4046.8564;
 /** Land size in m² from text like "2-Acre", "1/8 acre", "half an acre", "50x100". */
 export function parseLandM2(text: string): number | undefined {
-  const t = text.toLowerCase();
-  const frac = t.match(/\b(\d+)\s*\/\s*(\d+)\s*(?:of an?\s*)?acres?\b/);
+  const t = text.toLowerCase().replace(/⅛/g, "1/8").replace(/¼/g, "1/4").replace(/½/g, "1/2").replace(/¾/g, "3/4");
+  const frac = t.match(/(?:^|[^\d])(\d+)\s*\/\s*(\d+)\s*-?\s*(?:of an?\s*)?acres?\b/);
   if (frac) return Math.round((Number(frac[1]) / Number(frac[2])) * ACRE_M2);
   if (/\bhalf(?:\s+an?)?\s*acre\b/.test(t)) return Math.round(ACRE_M2 / 2);
   if (/\bquarter(?:\s+an?)?\s*acre\b/.test(t)) return Math.round(ACRE_M2 / 4);
-  const acres = t.match(/\b(\d+(?:\.\d+)?)\s*-?\s*acres?\b/);
-  if (acres) return Math.round(Number(acres[1]) * ACRE_M2);
+  const acres = t.match(/\b(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*-?\s*acres?\b/);
+  if (acres) return Math.round(Number(acres[1].replace(/,/g, "")) * ACRE_M2);
   const ft = t.match(/\b(\d{2,3})\s*(?:ft\s*)?(?:x|by)\s*(\d{2,3})\s*(?:ft|feet)?\b/);
   if (ft) return Math.round(Number(ft[1]) * Number(ft[2]) * 0.092903);
   return undefined;
 }
 
-function geoFromLocationSlug(slug: string | undefined) {
-  if (!slug) return {};
+// Towns/areas seen on uhiko.com mapped to their county (area_1).
+const TOWN_COUNTY: Array<[RegExp, string]> = [
+  [/kitengela|isinya|enkasit|kajiado|ngong|rongai|kiserian|korompoi|kimuka|athi river(?! road)/, "Kajiado"],
+  [/juja|thika|ruiru|tatu city|kiambu|banana|limuru|kikuyu|githunguri|kilimambogo|ngemwa|gatundu|kiambaa/, "Kiambu"],
+  [/sagana|kagio|kirinyaga|kerugoya|mwea/, "Kirinyaga"],
+  [/bamburi|nyali|mombasa|shanzu|mtwapa(?=.*mombasa)/, "Mombasa"],
+  [/diani|ukunda|kwale/, "Kwale"],
+  [/kilifi|malindi|watamu|mtwapa/, "Kilifi"],
+  [/\bvoi\b|taita|taveta|mwatate/, "Taita Taveta"],
+  [/\btala\b|machakos|kangundo|syokimau|mlolongo|athi river/, "Machakos"],
+  [/nakuru|naivasha|gilgil|njoro/, "Nakuru"],
+  [/nanyuki|laikipia/, "Laikipia"],
+  [/nyeri|karatina/, "Nyeri"],
+  [/murang'?a|kenol|makuyu/, "Murang'a"],
+  [/kisumu/, "Kisumu"],
+  [/eldoret|uasin gishu/, "Uasin Gishu"],
+  [/westlands|kilimani|lavington|karen|kileleshwa|parklands|upper ?hill|utawala|komarock|embakasi|runda|riara|argwings|south c|south b|langata|kasarani|roysambu|donholm|nairobi|thika road|katani(?=.*nairobi)/, "Nairobi"],
+];
+
+function countyFrom(text: string): string | undefined {
+  const t = text.toLowerCase();
+  const explicit = t.match(/\b([a-z' ]{3,20}?)\s+county\b/);
+  if (explicit) {
+    const name = explicit[1].trim().split(" ").pop()!;
+    const hit = TOWN_COUNTY.find(([, c]) => c.toLowerCase().startsWith(name));
+    if (hit) return hit[1];
+    if (KENYA_COUNTIES.includes(name)) return titleCase(name);
+  }
+  return TOWN_COUNTY.find(([re]) => re.test(t))?.[1];
+}
+
+function geoFromLocationSlug(slug: string | undefined, context = "") {
+  if (!slug) return { area_1: countyFrom(context) };
   const parts = slug.split("-");
   const last = parts[parts.length - 1];
   if (parts.length > 1 && KENYA_COUNTIES.includes(last)) {
-    return { locality: titleCase(parts.slice(0, -1).join("-")), area_1: titleCase(last) };
+    return { locality: titleCase(parts.slice(0, -1).join("-")), area_1: countyFrom(last) ?? titleCase(last) };
   }
-  return { locality: titleCase(slug) };
+  // Slug is the locality itself (e.g. "kitengela"); county from slug or listing text.
+  return { locality: titleCase(slug), area_1: countyFrom(slug.replace(/-/g, " ")) ?? countyFrom(context) };
 }
 
 export function toListing(post: WpPost): Listing {
@@ -233,10 +272,24 @@ export function toListing(post: WpPost): Listing {
   const fromTitle = parseKes(title);
   const fromText = fromTitle.amount ? fromTitle : parseKes(text);
   const metaPrice = num(pick(meta, [/^(fave_)?property_price$/, /^price$/, /_price$/, /price/]));
-  const isRent = fromText.perMonth || /\b(for rent|to let|rental)\b/i.test(title);
+  // "for sale" in the title wins: "House + 2 Rental Units for Sale" is a sale.
+  const saysSale = /\b(for sale|on sale|selling)\b/i.test(title);
+  const isRent = !saysSale && (fromText.perMonth || /\b(for rent|to let|for lease)\b/i.test(title));
   const deal: "sale" | "rent" = metaPrice ? dealType(meta, terms, text) : isRent ? "rent" : "sale";
-  const price = metaPrice ?? fromText.amount;
-  const slugGeo = geoFromLocationSlug(ct.locations[0]);
+  let price = metaPrice ?? (deal === "sale" && fromText.perMonth ? undefined : fromText.amount);
+  const slugGeo = geoFromLocationSlug(ct.locations[0], `${title} ${text.slice(0, 800)}`);
+  const lotM2 = num(pick(meta, [/land_area/, /lot_size/, /plot_size/])) ?? parseLandM2(`${title} ${text.slice(0, 1500)}`);
+
+  // Sanity checks: hold the listing for review rather than publish a wrong price.
+  let review: string | undefined;
+  if (deal === "sale" && price !== undefined && price < 300_000) {
+    review = `sale price KES ${price.toLocaleString("en")} looks like a rent or per-unit figure`;
+  } else if (deal === "sale" && price !== undefined && lotM2 && lotM2 >= 5 * ACRE_M2 && price / (lotM2 / ACRE_M2) < 250_000) {
+    review = `KES ${price.toLocaleString("en")} for ${Math.round(lotM2 / ACRE_M2)} acres looks like a per-acre price`;
+  } else if (price === undefined && (fromText.perUnit || fromTitle.perUnit)) {
+    review = "only a per-acre/per-plot price is given; add the total asking price to the listing";
+  }
+  if (review) price = undefined;
   // num() drops negatives, and Kenyan latitudes are often negative, so parse directly.
   let latRaw: unknown = pick(meta, [/lat(itude)?$/]);
   let lngRaw = pick(meta, [/(lng|lon|long|longitude)$/]);
@@ -257,7 +310,7 @@ export function toListing(post: WpPost): Listing {
     property_type: propertyType(terms, title),
     info_link: typeof post.link === "string" && post.link.startsWith("https://") ? post.link : undefined,
     geo: {
-      area_1: String(pick(meta, [/state$/, /county/, /region/]) ?? slugGeo.area_1 ?? "Nairobi"),
+      area_1: (pick(meta, [/state$/, /county/, /region/]) as string | undefined) ?? slugGeo.area_1,
       locality: locality ? titleCase(String(locality)) : slugGeo.locality,
       street: typeof address === "string" ? address.slice(0, 255) : undefined,
       ...(coordsInKenya(latRaw, lng) ? { lat: Number(latRaw), lng } : {}),
@@ -271,7 +324,8 @@ export function toListing(post: WpPost): Listing {
       bathrooms: num(pick(meta, [/bathroom/, /^baths?$/])),
       size_s_total_metric: num(pick(meta, [/property_size$/, /^size$/, /area_size/, /sqm|square/])),
     },
-    lot: { size_s_metric: num(pick(meta, [/land_area/, /lot_size/, /plot_size/])) ?? parseLandM2(`${title} ${text.slice(0, 1500)}`) },
+    lot: { size_s_metric: lotM2 },
+    review,
     price: deal === "sale" ? { currency: "KES", sum_total: price } : { currency: "KES", per_month: price },
     images: images(post, meta),
   };
