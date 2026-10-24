@@ -215,6 +215,31 @@ export function describeFields(posts: WpPost[]) {
   return { postFields: [...top].sort(), metaKeys: [...meta].sort(), knownTypes: PROPERTY_TYPES.length };
 }
 
+/**
+ * Temporary diagnostic: one published listing as WordPress returns it with
+ * edit context (which can include registered meta), plus the theme's REST
+ * namespaces. Listing data is already public on uhiko.com; nothing
+ * credential-like is returned.
+ */
+export async function rawSample(restBase: string) {
+  const { body: list } = await wpGet(`/wp/v2/${restBase}?per_page=1&status=publish`);
+  const id = Array.isArray(list) && list[0]?.id;
+  if (!id) return { error: "no published listing found" };
+  let edit: unknown = null;
+  try {
+    edit = (await wpGet(`/wp/v2/${restBase}/${id}?context=edit`)).body;
+  } catch (e) {
+    edit = { error: e instanceof Error ? e.message : String(e) };
+  }
+  const { body: root } = await wpGet("/");
+  const strip = (o: any) => {
+    if (!o || typeof o !== "object") return o;
+    const { _links, guid, password, ...rest } = o;
+    return rest;
+  };
+  return { id, namespaces: root?.namespaces, edit: strip(edit) };
+}
+
 export function wordpressConfigured() {
   return config().authenticated;
 }

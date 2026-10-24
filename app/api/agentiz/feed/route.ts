@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildAgentizFeed, type Contacts } from "@/lib/agentiz/feed";
-import { describeFields, detectPropertyType, fetchAllProperties, toListing, wordpressConfigured } from "@/lib/agentiz/wordpress";
+import { describeFields, detectPropertyType, fetchAllProperties, rawSample, toListing, wordpressConfigured } from "@/lib/agentiz/wordpress";
 
 export const runtime = "nodejs";
 // Agentiz polls this URL; cache briefly at the edge so polling never hammers WordPress.
@@ -26,9 +26,11 @@ function contacts(): Contacts {
 }
 
 export async function GET(request: Request) {
-  const debug = new URL(request.url).searchParams.get("debug") === "1";
+  const mode = new URL(request.url).searchParams.get("debug");
+  const debug = mode === "1";
   try {
     const postType = await detectPropertyType();
+    if (mode === "raw") return NextResponse.json(await rawSample(postType));
     const posts = await fetchAllProperties(postType);
     const listings = posts.map(toListing);
     const feed = buildAgentizFeed(contacts(), listings);
