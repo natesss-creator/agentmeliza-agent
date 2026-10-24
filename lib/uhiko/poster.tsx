@@ -11,6 +11,12 @@ const GREEN = "#0E2A22";
 const GOLD = "#E8B931";
 const CREAM = "#F7F3EA";
 
+// Stable Facebook Graph "picture" edge for the connected Innocent labs Page
+// (Page ID 1490707094122032, meliza-facebook connection). This proxy URL
+// always redirects to the Page's current profile photo, so it never goes
+// stale the way a signed CDN link from a single API call would.
+const LOGO_URL = "https://graph.facebook.com/1490707094122032/picture?type=large&width=200&height=200";
+
 function contact() {
   const name = [process.env.UHIKO_CONTACT_FIRST_NAME, process.env.UHIKO_CONTACT_LAST_NAME].filter(Boolean).join(" ") || "Uhiko Properties";
   const raw = process.env.UHIKO_CONTACT_PHONE || "";
@@ -51,9 +57,10 @@ function Editorial({ p }: { p: PosterData }) {
         </div>
         <div style={{ display: "flex", flex: 1 }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid rgba(232,185,49,0.5)", paddingTop: 24 }}>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", fontSize: 30, fontWeight: 800, letterSpacing: 4, color: GOLD }}>UHIKO PROPERTIES</div>
-            <div style={{ display: "flex", fontSize: 26, marginTop: 6 }}>uhiko.com</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO_URL} width={52} height={52} style={{ width: 52, height: 52, borderRadius: 999, objectFit: "cover", border: `2px solid ${GOLD}` }} />
+            <div style={{ display: "flex", fontSize: 26, marginTop: 0 }}>uhiko.com</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
             <div style={{ display: "flex", fontSize: 28 }}>{c.name}</div>
@@ -72,7 +79,10 @@ function Bold({ p }: { p: PosterData }) {
       <Photo p={p} height={H} />
       <div style={{ display: "flex", position: "absolute", top: 0, left: 0, width: W, height: H, backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0.15) 50%, rgba(8,24,19,0.92) 78%, rgba(8,24,19,0.98) 100%)" }} />
       <div style={{ display: "flex", position: "absolute", top: 52, left: 56, right: 56, justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", fontSize: 30, fontWeight: 900, letterSpacing: 5, background: "rgba(8,24,19,0.55)", padding: "10px 18px" }}>UHIKO PROPERTIES</div>
+        <div style={{ display: "flex", alignItems: "center", background: "rgba(8,24,19,0.55)", padding: "8px 16px", borderRadius: 999 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO_URL} width={38} height={38} style={{ width: 38, height: 38, borderRadius: 999, objectFit: "cover" }} />
+        </div>
         <div style={{ display: "flex", background: GOLD, color: GREEN, fontSize: 28, fontWeight: 900, padding: "10px 24px", letterSpacing: 2 }}>{p.dealLabel}</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", position: "absolute", left: 56, right: 56, bottom: 170 }}>
