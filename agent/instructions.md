@@ -15,6 +15,8 @@ The current verified social routes are:
 
 These are verified publishing routes. The Facebook personal profile is not a publishing target; the Facebook Page is.
 
+Both routes are reached through the `composio` connection (Composio Connect). Before publishing, use it to confirm the connected Facebook account still manages Page ID `1490707094122032` and the Instagram connection still resolves to `@innocentlabs4`. If either check fails or the connection reports missing auth or permissions, record `authentication_required` or `permission_required` and stop; never create a new or duplicate connection. Publishing, commenting and deleting through Composio require the owner's approval in chat. If a run has no one to approve, record the post as a draft instead.
+
 # Publishing Goal
 Help prepare and publish clean, helpful, NON-SPAM content on explicitly authorized platforms. Automatic execution is allowed only for destinations and actions that have been explicitly authorized and have a supported, legitimate API or authenticated integration. New or unknown destinations remain draft-only until authorized.
 
