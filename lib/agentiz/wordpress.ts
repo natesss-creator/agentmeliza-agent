@@ -62,6 +62,16 @@ export async function fetchAllProperties(restBase: string): Promise<WpPost[]> {
   return out;
 }
 
+/** One published property by WordPress post ID (with featured image embedded). */
+export async function fetchProperty(restBase: string, id: number): Promise<WpPost | null> {
+  try {
+    const { body } = await wpGet(`/wp/v2/${restBase}/${id}?_embed=wp:featuredmedia,wp:term`);
+    return body?.status === "publish" ? body : null;
+  } catch {
+    return null;
+  }
+}
+
 // ---- field mapping -------------------------------------------------------
 
 function flatMeta(post: WpPost): Record<string, unknown> {
