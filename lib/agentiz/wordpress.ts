@@ -157,13 +157,86 @@ function images(post: WpPost, meta: Record<string, unknown>): string[] {
   return [...urls].slice(0, 30);
 }
 
+// ---- uhiko.com specifics ---------------------------------------------------
+// The site stores no structured price/size fields: they live in the title and
+// description ("Prime 2-Acre ... – KES 15.5 Million"). Taxonomies arrive as
+// class_list slugs: property_type-*, property_location-*, property_status-*.
+
+const KENYA_COUNTIES = [
+  "nairobi", "kiambu", "machakos", "kajiado", "muranga", "nakuru", "mombasa", "kilifi", "kwale", "nyeri",
+  "laikipia", "meru", "embu", "kirinyaga", "nyandarua", "narok", "kisumu", "kakamega", "bungoma", "kericho",
+  "bomet", "nandi", "kitui", "makueni", "taita", "lamu", "naivasha", "thika", "eldoret", "uasin",
+];
+
+const titleCase = (s: string) => s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+function classTerms(post: WpPost) {
+  const list: string[] = Array.isArray(post.class_list) ? post.class_list : [];
+  const of = (prefix: string) => list.filter((c) => c.startsWith(`${prefix}-`)).map((c) => c.slice(prefix.length + 1));
+  return { types: of("property_type"), locations: of("property_location"), statuses: of("property_status") };
+}
+
+const MULT: Record<string, number> = { billion: 1e9, bn: 1e9, b: 1e9, million: 1e6, mn: 1e6, m: 1e6, thousand: 1e3, k: 1e3 };
+
+/**
+ * Finds a KES amount. Skips per-unit prices ("per acre", "per plot") because
+ * Agentiz needs the full asking price; those listings are reported, not guessed.
+ */
+export function parseKes(text: string): { amount?: number; perMonth: boolean; perUnit: boolean } {
+  const re = /(?:KES|KSHS?\.?|Kshs?\.?|Sh\.?)\s*([\d][\d,]*(?:\.\d+)?)\s*(billion|bn|million|mn|thousand|[bmk])?\b/gi;
+  let perUnit = false;
+  for (const m of text.matchAll(re)) {
+    const after = text.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 30).toLowerCase();
+    if (/^\s*(per|\/|each)\s*(acre|plot|eighth|1\/8|unit|sq|square|ft)/.test(after)) {
+      perUnit = true;
+      continue;
+    }
+    const base = Number(m[1].replace(/,/g, ""));
+    const amount = Math.round(base * (m[2] ? MULT[m[2].toLowerCase()] ?? 1 : 1));
+    if (!Number.isFinite(amount) || amount < 1000) continue;
+    return { amount, perMonth: /^\s*(per\s*month|\/\s*month|p\.?m\b|monthly)/.test(after), perUnit };
+  }
+  return { perMonth: false, perUnit };
+}
+
+const ACRE_M2 = 4046.8564;
+/** Land size in m² from text like "2-Acre", "1/8 acre", "half an acre", "50x100". */
+export function parseLandM2(text: string): number | undefined {
+  const t = text.toLowerCase();
+  const frac = t.match(/\b(\d+)\s*\/\s*(\d+)\s*(?:of an?\s*)?acres?\b/);
+  if (frac) return Math.round((Number(frac[1]) / Number(frac[2])) * ACRE_M2);
+  if (/\bhalf(?:\s+an?)?\s*acre\b/.test(t)) return Math.round(ACRE_M2 / 2);
+  if (/\bquarter(?:\s+an?)?\s*acre\b/.test(t)) return Math.round(ACRE_M2 / 4);
+  const acres = t.match(/\b(\d+(?:\.\d+)?)\s*-?\s*acres?\b/);
+  if (acres) return Math.round(Number(acres[1]) * ACRE_M2);
+  const ft = t.match(/\b(\d{2,3})\s*(?:ft\s*)?(?:x|by)\s*(\d{2,3})\s*(?:ft|feet)?\b/);
+  if (ft) return Math.round(Number(ft[1]) * Number(ft[2]) * 0.092903);
+  return undefined;
+}
+
+function geoFromLocationSlug(slug: string | undefined) {
+  if (!slug) return {};
+  const parts = slug.split("-");
+  const last = parts[parts.length - 1];
+  if (parts.length > 1 && KENYA_COUNTIES.includes(last)) {
+    return { locality: titleCase(parts.slice(0, -1).join("-")), area_1: titleCase(last) };
+  }
+  return { locality: titleCase(slug) };
+}
+
 export function toListing(post: WpPost): Listing {
   const meta = flatMeta(post);
-  const terms = termNames(post);
+  const ct = classTerms(post);
+  const terms = [...termNames(post), ...ct.types.map((t) => t.replace(/-/g, " "))];
   const title = stripHtml(post.title?.rendered || "");
   const text = stripHtml(post.content?.rendered || post.excerpt?.rendered || "");
-  const deal = dealType(meta, terms, text);
-  const price = num(pick(meta, [/^(fave_)?property_price$/, /^price$/, /_price$/, /price/]));
+  const fromTitle = parseKes(title);
+  const fromText = fromTitle.amount ? fromTitle : parseKes(text);
+  const metaPrice = num(pick(meta, [/^(fave_)?property_price$/, /^price$/, /_price$/, /price/]));
+  const isRent = fromText.perMonth || /\b(for rent|to let|rental)\b/i.test(title);
+  const deal: "sale" | "rent" = metaPrice ? dealType(meta, terms, text) : isRent ? "rent" : "sale";
+  const price = metaPrice ?? fromText.amount;
+  const slugGeo = geoFromLocationSlug(ct.locations[0]);
   // num() drops negatives, and Kenyan latitudes are often negative, so parse directly.
   let latRaw: unknown = pick(meta, [/lat(itude)?$/]);
   let lngRaw = pick(meta, [/(lng|lon|long|longitude)$/]);
@@ -176,7 +249,7 @@ export function toListing(post: WpPost): Listing {
   }
   const lng = lngRaw == null ? undefined : Number(lngRaw);
   const address = pick(meta, [/property_address$/, /^address$/, /map_address/, /location/]);
-  const locality = pick(meta, [/city$/, /locality/, /area$/, /neighbou?rhood/]) ?? terms.find((t) => /westlands|kilimani|karen|lavington|kileleshwa|runda|parklands|ruiru|kiambu/.test(t));
+  const locality = pick(meta, [/city$/, /locality/, /area$/, /neighbou?rhood/]);
 
   return {
     external_id: `UH-${post.id}`,
@@ -184,8 +257,8 @@ export function toListing(post: WpPost): Listing {
     property_type: propertyType(terms, title),
     info_link: typeof post.link === "string" && post.link.startsWith("https://") ? post.link : undefined,
     geo: {
-      area_1: String(pick(meta, [/state$/, /county/, /region/]) ?? "Nairobi"),
-      locality: locality ? String(locality).replace(/\b\w/g, (c) => c.toUpperCase()) : undefined,
+      area_1: String(pick(meta, [/state$/, /county/, /region/]) ?? slugGeo.area_1 ?? "Nairobi"),
+      locality: locality ? titleCase(String(locality)) : slugGeo.locality,
       street: typeof address === "string" ? address.slice(0, 255) : undefined,
       ...(coordsInKenya(latRaw, lng) ? { lat: Number(latRaw), lng } : {}),
     },
@@ -198,7 +271,7 @@ export function toListing(post: WpPost): Listing {
       bathrooms: num(pick(meta, [/bathroom/, /^baths?$/])),
       size_s_total_metric: num(pick(meta, [/property_size$/, /^size$/, /area_size/, /sqm|square/])),
     },
-    lot: { size_s_metric: num(pick(meta, [/land_area/, /lot_size/, /plot_size/])) },
+    lot: { size_s_metric: num(pick(meta, [/land_area/, /lot_size/, /plot_size/])) ?? parseLandM2(`${title} ${text.slice(0, 1500)}`) },
     price: deal === "sale" ? { currency: "KES", sum_total: price } : { currency: "KES", per_month: price },
     images: images(post, meta),
   };
