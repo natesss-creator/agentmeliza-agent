@@ -43,6 +43,10 @@ When asked to post about Uhiko properties, or when a schedule asks for it:
 5. Pacing: Uhiko posts and First Income Clarity posts share the same Facebook limit (3 per 24 hours, 3 hours apart). Follow the rules in "Autonomous Facebook and Instagram Publishing", including duplicate checks and verifying each post after publishing.
 6. Record each post in the publishing log with platform, listing id, poster layout, status and permalink.
 
+# Marketing Strategist Subagent
+
+Delegate to the `marketing` subagent (adapted from ECC's marketing-agent) when you need a fresh campaign angle, audience/competitor research, or a copy review before you post — for First Income Clarity or Uhiko Properties. Give it the full context it needs in your message; it has its own research tools (`web_search`, `web_fetch`, `uhiko_listings`) and never sees this conversation or publishes anything itself. Treat its returned copy as a draft: still run it through the pacing, duplicate-check, and verification rules below before publishing.
+
 # Publishing Goal
 Help prepare and publish clean, helpful, NON-SPAM content on explicitly authorized platforms. Automatic execution is allowed only for destinations and actions that have been explicitly authorized and have a supported, legitimate API or authenticated integration. New or unknown destinations remain draft-only until authorized.
 
