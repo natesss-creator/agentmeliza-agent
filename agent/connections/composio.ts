@@ -29,18 +29,19 @@ function serialize(input: unknown): string {
   }
 }
 
+// Until the owner adds COMPOSIO_API_KEY in Vercel, expose no tools at all so
+// Meliza reports the integration as not configured instead of erroring.
+const configured = Boolean(process.env.COMPOSIO_API_KEY);
+
 export default defineMcpClientConnection({
   url: "https://connect.composio.dev/mcp",
+  ...(configured ? {} : { tools: { allow: [] } }),
   description:
     "Composio: the owner's already-authorized app connections. Use for the Facebook Page 'Innocent labs' (publish posts/photos, read posts, insights), Instagram @innocentlabs4 (create and publish media, read media, insights), and Gmail, Slack, Linear, GitHub. Always reuse existing connected accounts; never create new or duplicate connections.",
-  headers: () => {
+  headers: (): Record<string, string> => {
     const key = process.env.COMPOSIO_API_KEY;
-    if (!key) {
-      throw new Error(
-        "COMPOSIO_API_KEY is not configured in Vercel. Add it as a Sensitive environment variable on the agentmeliza project.",
-      );
-    }
-    return { "x-consumer-api-key": key };
+    // Not configured: send no credentials; the empty allow-list keeps the model off this connection.
+    return key ? { "x-consumer-api-key": key } : {};
   },
   approval: ({ toolName, toolInput }) => {
     const text = `${toolName} ${serialize(toolInput)}`;
