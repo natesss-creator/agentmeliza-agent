@@ -62,7 +62,26 @@ async function checkComposio(): Promise<Check> {
     if (!list.ok) return { ok: false, detail: `Composio tools/list returned HTTP ${list.status}` };
     const body = await parse(list);
     const n = body?.result?.tools?.length ?? 0;
-    return n > 0 ? { ok: true, detail: `key valid; ${n} Composio tools available` } : { ok: false, detail: "connected but no tools returned" };
+    if (n === 0) return { ok: false, detail: "connected but no tools returned" };
+
+    // Read-only: confirm this key sees the owner's Facebook/Instagram connections.
+    const conn = await fetch(url, {
+      method: "POST",
+      headers: { ...headers, ...(session ? { "mcp-session-id": session } : {}) },
+      body: JSON.stringify({
+        jsonrpc: "2.0", id: 3, method: "tools/call",
+        params: { name: "COMPOSIO_MANAGE_CONNECTIONS", arguments: { toolkits: [{ name: "facebook", action: "list" }, { name: "instagram", action: "list" }] } },
+      }),
+      cache: "no-store",
+    });
+    const cbody = await parse(conn);
+    const text: string = (cbody?.result?.content || []).map((c: any) => c?.text || "").join(" ");
+    const fb = /meliza-facebook/.test(text);
+    const ig = /meliza-instagram/.test(text);
+    return {
+      ok: fb && ig,
+      detail: `key valid; ${n} tools; meliza-facebook ${fb ? "found" : "NOT found"}, meliza-instagram ${ig ? "found" : "NOT found"}`,
+    };
   } catch (e) {
     return { ok: false, detail: `network error: ${e instanceof Error ? e.message : String(e)}` };
   }
