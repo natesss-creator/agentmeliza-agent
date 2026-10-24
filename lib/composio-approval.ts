@@ -20,6 +20,13 @@ const DESTRUCTIVE = /\b[A-Z]+_[A-Z0-9_]*(DELETE|REMOVE|DISCONNECT|UNPUBLISH)[A-Z
 // account before posting; only changes to connections are gated.
 const CONNECTION_CHANGE = /INITIATE_CONNECTION|DELETE_CONNECTION|"action"\s*:\s*"(add|remove|rename)"/;
 
+// Gmail sends don't match SOCIAL_WRITE (Gmail isn't a social platform), so
+// without this guard they would silently fall through to autonomous for any
+// recipient. Restrict autonomous sending to the owner's own notification
+// address (e.g. the daily report); anything else still needs approval.
+const GMAIL_SEND = /\bGMAIL_(SEND_EMAIL|SEND_DRAFT|REPLY_TO_THREAD)\b/;
+const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
 function serialize(input: unknown): string {
   try {
     return JSON.stringify(input ?? "");
@@ -28,10 +35,19 @@ function serialize(input: unknown): string {
   }
 }
 
+function isOwnerOnlyRecipient(toolInput: unknown): boolean {
+  const owner = (process.env.OWNER_NOTIFY_EMAIL || "").toLowerCase();
+  if (!owner) return false; // no owner address configured: never autonomous
+  const addresses = serialize(toolInput).toLowerCase().match(EMAIL_RE) ?? [];
+  if (addresses.length === 0) return false; // no recipient found: don't risk it
+  return addresses.every((a) => a === owner);
+}
+
 export function composioApproval(toolName: string, toolInput: unknown): "user-approval" | "not-applicable" {
     const text = `${toolName} ${serialize(toolInput)}`;
     if (DESTRUCTIVE.test(text)) return "user-approval";
     if (/MANAGE_CONNECTIONS|INITIATE_CONNECTION|DELETE_CONNECTION/.test(text) && CONNECTION_CHANGE.test(text)) return "user-approval";
+    if (GMAIL_SEND.test(text)) return isOwnerOnlyRecipient(toolInput) ? "not-applicable" : "user-approval";
     // A batched call is autonomous only if every social write in it targets Facebook/Instagram.
     const writes = text.match(SOCIAL_WRITE) ?? [];
     if (writes.some((w) => !AUTONOMOUS_PLATFORMS.test(w))) return "user-approval";
