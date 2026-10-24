@@ -1,4 +1,5 @@
 import { defineMcpClientConnection } from "eve/connections";
+import { composioApproval } from "@/lib/composio-approval";
 
 /**
  * Composio Connect: gives Meliza the owner's existing Composio connected
@@ -12,22 +13,6 @@ import { defineMcpClientConnection } from "eve/connections";
  * and the concrete app action (e.g. FACEBOOK_CREATE_POST) travels inside the
  * tool input, so the approval policy inspects the input for write actions.
  */
-
-// Actions that publish, change or delete content on a connected account.
-const WRITE_ACTION =
-  /\b(FACEBOOK|INSTAGRAM|THREADS|LINKEDIN|TWITTER|YOUTUBE|TIKTOK|PINTEREST|REDDIT)_[A-Z0-9_]*(CREATE|PUBLISH|POST|UPLOAD|SEND|REPLY|COMMENT|UPDATE|EDIT|DELETE|REMOVE|SCHEDULE)[A-Z0-9_]*\b/;
-const DESTRUCTIVE = /\b[A-Z]+_[A-Z0-9_]*(DELETE|REMOVE|DISCONNECT)[A-Z0-9_]*\b/;
-// Creating or deleting connections must never happen silently: the brief
-// forbids duplicate connections.
-const CONNECTION_MGMT = /MANAGE_CONNECTIONS|INITIATE_CONNECTION|DELETE_CONNECTION/;
-
-function serialize(input: unknown): string {
-  try {
-    return JSON.stringify(input ?? "");
-  } catch {
-    return "";
-  }
-}
 
 // Until the owner adds COMPOSIO_API_KEY in Vercel, expose no tools at all so
 // Meliza reports the integration as not configured instead of erroring.
@@ -43,11 +28,5 @@ export default defineMcpClientConnection({
     // Not configured: send no credentials; the empty allow-list keeps the model off this connection.
     return key ? { "x-consumer-api-key": key } : {};
   },
-  approval: ({ toolName, toolInput }) => {
-    const text = `${toolName} ${serialize(toolInput)}`;
-    if (CONNECTION_MGMT.test(text)) return "user-approval";
-    if (DESTRUCTIVE.test(text)) return "user-approval";
-    if (WRITE_ACTION.test(text)) return "user-approval";
-    return "not-applicable";
-  },
+  approval: ({ toolName, toolInput }) => composioApproval(toolName, toolInput),
 });

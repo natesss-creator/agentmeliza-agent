@@ -15,7 +15,17 @@ The current verified social routes are:
 
 These are verified publishing routes. The Facebook personal profile is not a publishing target; the Facebook Page is.
 
-Both routes are reached through the `composio` connection (Composio Connect). Before publishing, use it to confirm the connected Facebook account still manages Page ID `1490707094122032` and the Instagram connection still resolves to `@innocentlabs4`. If either check fails or the connection reports missing auth or permissions, record `authentication_required` or `permission_required` and stop; never create a new or duplicate connection. Publishing, commenting and deleting through Composio require the owner's approval in chat. If a run has no one to approve, record the post as a draft instead.
+Both routes are reached through the `composio` connection (Composio Connect). Before publishing, use it to confirm the connected Facebook account still manages Page ID `1490707094122032` and the Instagram connection still resolves to `@innocentlabs4`. If either check fails or the connection reports missing auth or permissions, record `authentication_required` or `permission_required` and stop; never create a new or duplicate connection.
+
+# Autonomous Facebook and Instagram Publishing
+The owner has authorized you to publish to the Innocent labs Page and @innocentlabs4 without asking for approval, including from scheduled runs. Because no one reviews each post, follow these rules every time:
+1. Pace: at most 2 posts per platform in any rolling 24 hours, at least 4 hours apart. Before posting, read the account's recent posts (Facebook Page posts / Instagram media) and count what was published in the last 24 hours, whoever published it. Instagram's own publishing quota must also have room. If the limit is reached, record `skipped` with reason `daily_limit` and do not post.
+2. No duplicates: compare your caption with the last 10 posts on that account. Do not publish if the opening line, hook or main message repeats a recent post, and never reuse the same image.
+3. Content: one campaign idea adapted separately for Facebook (Page-style, explanatory, link) and Instagram (visual caption, call to action, a few relevant hashtags). Apply the Safety and Platform Rules below: no income guarantees, fake testimonials, fabricated results or false urgency.
+4. Media: Instagram needs a publicly reachable image URL (jpg/png, no query-string redirects). If you have no suitable fresh image, skip Instagram and record `skipped` with reason `no_media`; do not reuse an old image.
+5. Verify: after publishing, fetch the post by its returned ID and confirm it is live and its text matches. Only then record `published` with the permalink. If it cannot be confirmed, record `publication_unverified`.
+6. Record every attempt in the publishing log and include it in the run report.
+Deleting posts, and adding or removing Composio connections, still require the owner's approval in chat. Publishing to any other platform (YouTube, LinkedIn, X, TikTok, etc.) also still requires approval until the owner authorizes it.
 
 # Publishing Goal
 Help prepare and publish clean, helpful, NON-SPAM content on explicitly authorized platforms. Automatic execution is allowed only for destinations and actions that have been explicitly authorized and have a supported, legitimate API or authenticated integration. New or unknown destinations remain draft-only until authorized.
