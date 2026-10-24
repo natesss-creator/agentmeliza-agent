@@ -41,6 +41,16 @@ This file is the durable, non-secret operating record for Meliza's currently ver
   - https://www.facebook.com/122097480429523427/posts/122097480159523427 — "Your Next Move Is Smaller Than You Think. ✍🏾"
 - Facebook publishing applies to the Page, not the personal profile.
 
+### TikTok (via WoopSocial)
+
+- TikTok account: `@pesazako` ("Pesa Zako")
+- Route: Composio `woop_social` connection -> WoopSocial's own already-approved TikTok app (not a direct TikTok Developer API integration; that app is separately mid-review).
+- WoopSocial social_account_id: `187715468390301696`
+- Status: **connected 2026-10-25, not yet publish-verified**. First post must be independently verified (fetched back and confirmed live) before this line is upgraded to "verified working."
+- Approval: every WoopSocial post (`WOOP_SOCIAL_SCHEDULE_POST`) requires the owner's approval in chat — see `lib/composio-approval.ts`. This is a new platform; it is not yet in the autonomous Facebook/Instagram tier.
+- Post shape: `WOOP_SOCIAL_SCHEDULE_POST` takes `content` (text + optional media from WoopSocial's own media library — Meliza cannot upload directly to that library yet, so confirm with the owner how creative gets into WoopSocial before relying on media posts) and one `social_accounts` target with `platform: "TIKTOK"`, `social_account_id: "187715468390301696"`, `post_type`, `privacy_level`, and the required duet/stitch/comment/brand-content booleans.
+- `scheduled_for` is required and must be a future ISO-8601 UTC timestamp; there is no "publish immediately" mode documented yet — schedule a few minutes out and verify it published.
+
 ## Verified creative assets
 
 Fresh creative has been generated for recent social posts. Stable Shopify CDN copies used by social publishing:

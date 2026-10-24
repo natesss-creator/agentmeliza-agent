@@ -27,6 +27,16 @@ const CONNECTION_CHANGE = /INITIATE_CONNECTION|DELETE_CONNECTION|"action"\s*:\s*
 const GMAIL_SEND = /\bGMAIL_(SEND_EMAIL|SEND_DRAFT|REPLY_TO_THREAD)\b/;
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
+// WoopSocial is Meliza's TikTok route (account "pesazako" connected
+// 2026-10-25) and also exposes Facebook/Instagram/LinkedIn/Pinterest/
+// X/YouTube/Threads targets of its own. Its tool names don't start with the
+// platform name (WOOP_SOCIAL_SCHEDULE_POST, not TIKTOK_...), so SOCIAL_WRITE
+// above never matches them and they would otherwise fall through to
+// autonomous. Gate every WoopSocial write explicitly: like any new platform,
+// it needs the owner's approval per post until they authorize autonomous
+// publishing through it the way Facebook/Instagram already are.
+const WOOP_SOCIAL_WRITE = /\bWOOP_SOCIAL_(SCHEDULE_POST|PUBLISH_POST|CREATE_POST)[A-Z0-9_]*\b/;
+
 function serialize(input: unknown): string {
   try {
     return JSON.stringify(input ?? "");
@@ -48,6 +58,7 @@ export function composioApproval(toolName: string, toolInput: unknown): "user-ap
     if (DESTRUCTIVE.test(text)) return "user-approval";
     if (/MANAGE_CONNECTIONS|INITIATE_CONNECTION|DELETE_CONNECTION/.test(text) && CONNECTION_CHANGE.test(text)) return "user-approval";
     if (GMAIL_SEND.test(text)) return isOwnerOnlyRecipient(toolInput) ? "not-applicable" : "user-approval";
+    if (WOOP_SOCIAL_WRITE.test(text)) return "user-approval";
     // A batched call is autonomous only if every social write in it targets Facebook/Instagram.
     const writes = text.match(SOCIAL_WRITE) ?? [];
     if (writes.some((w) => !AUTONOMOUS_PLATFORMS.test(w))) return "user-approval";

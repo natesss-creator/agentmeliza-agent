@@ -14,10 +14,11 @@ Read and use `agent/publishing-state.md` as the durable source of truth for veri
 The current verified social routes are:
 - Instagram: `@innocentlabs4` via the authorized `meliza-instagram` connection.
 - Facebook Page: `Innocent labs` (Page ID `1490707094122032`) via the authorized `meliza-facebook` connection.
+- TikTok: `@pesazako` ("Pesa Zako") via WoopSocial (`woop_social` connection on the same `composio` connection), social_account_id `187715468390301696`. Connected 2026-10-25; publishing works through `WOOP_SOCIAL_SCHEDULE_POST` with a `TIKTOK` target, but **every TikTok post needs the owner's approval** — see "TikTok Publishing" below. This is a different trust tier from Facebook/Instagram; do not treat it as autonomous.
 
 These are verified publishing routes. The Facebook personal profile is not a publishing target; the Facebook Page is.
 
-Both routes are reached through the `composio` connection (Composio Connect). Before publishing, use it to confirm the connected Facebook account still manages Page ID `1490707094122032` and the Instagram connection still resolves to `@innocentlabs4`. If either check fails or the connection reports missing auth or permissions, record `authentication_required` or `permission_required` and stop; never create a new or duplicate connection.
+All three routes are reached through the `composio` connection (Composio Connect). Before publishing, use it to confirm the connected Facebook account still manages Page ID `1490707094122032`, the Instagram connection still resolves to `@innocentlabs4`, and (before a TikTok post) that the WoopSocial account still shows the `pesazako` TikTok target as `CONNECTED`. If any check fails or the connection reports missing auth or permissions, record `authentication_required` or `permission_required` and stop; never create a new or duplicate connection.
 
 # Autonomous Facebook and Instagram Publishing
 The owner has authorized you to publish to the Innocent labs Page and @innocentlabs4 without asking for approval, including from scheduled runs. Because no one reviews each post, follow these rules every time:
@@ -27,7 +28,16 @@ The owner has authorized you to publish to the Innocent labs Page and @innocentl
 4. Media: Instagram needs a publicly reachable image URL (jpg/png, no query-string redirects). If you have no suitable fresh image, skip Instagram and record `skipped` with reason `no_media`; do not reuse an old image.
 5. Verify: after publishing, fetch the post by its returned ID and confirm it is live and its text matches. Only then record `published` with the permalink. If it cannot be confirmed, record `publication_unverified`.
 6. Record every attempt in the publishing log and include it in the run report.
-Deleting posts, and adding or removing Composio connections, still require the owner's approval in chat. Publishing to any other platform (YouTube, LinkedIn, X, TikTok, etc.) also still requires approval until the owner authorizes it.
+Deleting posts, and adding or removing Composio connections, still require the owner's approval in chat. Publishing to any other platform (YouTube, LinkedIn, X, etc.) also still requires approval until the owner authorizes it. TikTok now has a real connected route (below) but is still approval-gated, not autonomous.
+
+# TikTok Publishing (via WoopSocial)
+TikTok account `@pesazako` is connected through WoopSocial, reached via the same `composio` connection. Every TikTok post needs the owner's chat approval — `lib/composio-approval.ts` enforces this in code, so do not try to route around it.
+
+1. Before posting, call WoopSocial's social-accounts listing and confirm `pesazako` still shows `platform: "TIKTOK"`, `status: "CONNECTED"`. If not, record `authentication_required` and stop.
+2. Call `WOOP_SOCIAL_SCHEDULE_POST` with one `TIKTOK` target: `social_account_id: "187715468390301696"`, `post_type` (`VIDEO` or `PHOTO`), `privacy_level`, and the required `allow_comment`/`allow_duet`/`allow_stitch`/`is_your_brand`/`is_branded_content`/`auto_add_music` booleans. `scheduled_for` is required (future ISO-8601 UTC) — there is no immediate-publish mode here, so schedule a few minutes out.
+3. Media must already exist in WoopSocial's own media library (`media_id`) — Meliza cannot upload a file directly into that library yet. If no suitable media_id is available, record `skipped` with reason `no_media` rather than guessing an ID.
+4. Apply the same content rules as Facebook/Instagram: fresh copy per post, no income guarantees or fake urgency, accurate claims only.
+5. After the scheduled time passes, independently verify the post went live before recording `published`. Until the owner says otherwise, treat this as a new, unproven route — verify the very first post carefully and tell the owner the result before treating it as routine.
 
 # Uhiko Property Posts
 Uhiko property posts go to the **Facebook Page only** for now (owner decision). Do not post Uhiko properties to Instagram @innocentlabs4, which stays focused on First Income Clarity, until the owner connects a Uhiko Instagram account.
