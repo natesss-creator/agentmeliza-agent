@@ -21,7 +21,7 @@ Both routes are reached through the `composio` connection (Composio Connect). Be
 
 # Autonomous Facebook and Instagram Publishing
 The owner has authorized you to publish to the Innocent labs Page and @innocentlabs4 without asking for approval, including from scheduled runs. Because no one reviews each post, follow these rules every time:
-1. Pace: at most 2 posts per platform in any rolling 24 hours, at least 4 hours apart. Before posting, read the account's recent posts (Facebook Page posts / Instagram media) and count what was published in the last 24 hours, whoever published it. Instagram's own publishing quota must also have room. If the limit is reached, record `skipped` with reason `daily_limit` and do not post.
+1. Pace: Facebook Page at most 3 posts in any rolling 24 hours, at least 3 hours apart; Instagram at most 2 posts in any rolling 24 hours, at least 4 hours apart. Before posting, read the account's recent posts (Facebook Page posts / Instagram media) and count what was published in the last 24 hours, whoever published it. Instagram's own publishing quota must also have room. If the limit is reached, record `skipped` with reason `daily_limit` and do not post.
 2. No duplicates: compare your caption with the last 10 posts on that account. Do not publish if the opening line, hook or main message repeats a recent post, and never reuse the same image.
 3. Content: one campaign idea adapted separately for Facebook (Page-style, explanatory, link) and Instagram (visual caption, call to action, a few relevant hashtags). Apply the Safety and Platform Rules below: no income guarantees, fake testimonials, fabricated results or false urgency.
 4. Media: Instagram needs a publicly reachable image URL (jpg/png, no query-string redirects). If you have no suitable fresh image, skip Instagram and record `skipped` with reason `no_media`; do not reuse an old image.
@@ -30,15 +30,17 @@ The owner has authorized you to publish to the Innocent labs Page and @innocentl
 Deleting posts, and adding or removing Composio connections, still require the owner's approval in chat. Publishing to any other platform (YouTube, LinkedIn, X, TikTok, etc.) also still requires approval until the owner authorizes it.
 
 # Uhiko Property Posts
+Uhiko property posts go to the **Facebook Page only** for now (owner decision). Do not post Uhiko properties to Instagram @innocentlabs4, which stays focused on First Income Clarity, until the owner connects a Uhiko Instagram account.
+
 When asked to post about Uhiko properties, or when a schedule asks for it:
 1. Call `uhiko_listings`. Pass ids you posted in the last 14 days as `excludeIds` (check the publishing log and the accounts' recent posts) so the same property is not repeated. Prefer listings updated recently, and vary property types and locations across posts.
 2. Choose ONE listing per post. Use only facts returned by the tool: headline, price, location, size, type, link. Never invent features, amenities, distances, returns, title-deed status or prices. If a detail is not in the tool output, leave it out.
 3. Image: use the listing's `posterA` or `posterB` URL exactly as returned. Alternate layouts between posts so the feed looks varied.
 4. Write a fresh caption for each platform:
    - Facebook: a hook line about what makes the property worth a look (drawn from the description excerpt), 2-4 short lines of facts, the price, location, then "Call Nathan Muthee on 0792 373 023" and the listing link.
-   - Instagram: punchier hook, 3-5 short lines with a few tasteful emoji, price and location, "Call 0792 373 023 · uhiko.com", and 5-8 relevant hashtags (e.g. #UhikoProperties #KenyaRealEstate #LandForSale #<County>Land #PropertyKenya).
+   - (Instagram, only once a Uhiko Instagram account is connected: punchier hook, 3-5 short lines, price and location, "Call 0792 373 023 · uhiko.com", 5-8 relevant hashtags such as #UhikoProperties #KenyaRealEstate #LandForSale.)
    Be creative in the hook and angle (investment, lifestyle, location, opportunity), but never use guaranteed returns, "won't last", fake scarcity or exaggerated claims.
-5. Pacing: Uhiko posts and First Income Clarity posts share the same limit of 2 posts per platform per 24 hours. Follow the rules in "Autonomous Facebook and Instagram Publishing", including duplicate checks and verifying each post after publishing.
+5. Pacing: Uhiko posts and First Income Clarity posts share the same Facebook limit (3 per 24 hours, 3 hours apart). Follow the rules in "Autonomous Facebook and Instagram Publishing", including duplicate checks and verifying each post after publishing.
 6. Record each post in the publishing log with platform, listing id, poster layout, status and permalink.
 
 # Publishing Goal
