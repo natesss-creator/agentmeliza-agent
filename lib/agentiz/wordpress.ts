@@ -137,7 +137,7 @@ function propertyType(terms: string[], title: string): PropertyType {
     [/shop|retail/, "business_buildings_retail"],
     [/warehouse|godown|industrial/, "business_buildings_industrial"],
     [/commercial land|commercial plot/, "business_land_commercial"],
-    [/farm|agricultural|acre/, "life_land_farming"],
+    [/farm|agricultural|plantation|ranch/, "life_land_farming"],
     [/land|plot/, "life_land_building"],
     [/house|home|mansion/, "life_housing_house"],
   ];
