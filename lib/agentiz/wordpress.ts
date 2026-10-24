@@ -237,7 +237,25 @@ export async function rawSample(restBase: string) {
     const { _links, guid, password, ...rest } = o;
     return rest;
   };
-  return { id, namespaces: root?.namespaces, edit: strip(edit) };
+
+  // Why is auth rejected? WordPress returns a specific error code:
+  // rest_not_logged_in => Authorization header never reached WordPress (host strips it)
+  // invalid_username / incorrect_password / invalid_email => wrong credentials
+  const { base, headers } = config();
+  const me = await fetch(`${base}/wp-json/wp/v2/users/me?context=edit`, { headers, cache: "no-store" });
+  const meBody: any = await me.json().catch(() => null);
+  const auth = me.ok
+    ? { ok: true, roles: meBody?.roles }
+    : { ok: false, status: me.status, code: meBody?.code, message: meBody?.message };
+
+  // Routes offered by the site's custom namespaces (public index, names only).
+  const customRoutes = Object.keys(root?.routes || {}).filter((r) => !/^\/(wp\/v2|oembed|wp-site-health|wp-block-editor|wp-abilities)\b/.test(r) && r !== "/");
+
+  const pub = strip(list[0]);
+  if (pub?.content?.rendered) pub.content = { rendered: String(pub.content.rendered).slice(0, 2000) };
+  if (pub?._embedded) delete pub._embedded;
+
+  return { id, namespaces: root?.namespaces, customRoutes, auth, public: pub, edit: strip(edit) };
 }
 
 export function wordpressConfigured() {
