@@ -41,6 +41,17 @@ const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const WOOP_SOCIAL_PUBLISH = /\bWOOP_SOCIAL_(SCHEDULE_POST|PUBLISH_POST_NOW|CREATE_POST)[A-Z0-9_]*\b/;
 const AUTONOMOUS_TIKTOK_SOCIAL_ACCOUNT_ID = "187715468390301696";
 
+// Video generation costs real, nonrefundable money per clip the instant it
+// starts (Gemini Veo charges the Composio balance per second; MiniMax's
+// video tools need the owner's own funded account) — unlike every other
+// tool call here, there is no free path. The owner has not yet picked an
+// engine or approved the spend (2026-10-25), so these always need approval,
+// even for a subagent (e.g. `video_producer`) that otherwise has direct
+// publish access. Do not relax this without an explicit owner decision on
+// which engine and what spending cap.
+const BILLABLE_VIDEO_GENERATION =
+  /\b(GEMINI_GENERATE_VIDEOS|MINIMAX_CREATE_(VIDEO|LEGACY_VIDEO|TEMPLATE_VIDEO)|MINIMAX_REGENERATE_VIDEO)\b/;
+
 function isAutonomousTikTokOnly(toolInput: unknown): boolean {
   let parsed: unknown = toolInput;
   if (typeof toolInput === "string") {
@@ -80,6 +91,7 @@ function isOwnerOnlyRecipient(toolInput: unknown): boolean {
 export function composioApproval(toolName: string, toolInput: unknown): "user-approval" | "not-applicable" {
     const text = `${toolName} ${serialize(toolInput)}`;
     if (DESTRUCTIVE.test(text)) return "user-approval";
+    if (BILLABLE_VIDEO_GENERATION.test(text)) return "user-approval";
     if (/MANAGE_CONNECTIONS|INITIATE_CONNECTION|DELETE_CONNECTION/.test(text) && CONNECTION_CHANGE.test(text)) return "user-approval";
     if (GMAIL_SEND.test(text)) return isOwnerOnlyRecipient(toolInput) ? "not-applicable" : "user-approval";
     if (WOOP_SOCIAL_PUBLISH.test(text)) return isAutonomousTikTokOnly(toolInput) ? "not-applicable" : "user-approval";

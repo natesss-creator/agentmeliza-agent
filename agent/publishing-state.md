@@ -20,6 +20,13 @@ This file is the durable, non-secret operating record for Meliza's currently ver
 - Every drafted caption now passes through the `qa_reviewer` subagent (facts/tone/brand) before publishing — see "Autonomous Facebook, Instagram, and TikTok Publishing" step 5 in `agent/instructions.md`. Distinct from `lawyer` (legal/compliance, reviewed daily or before a sensitive claim).
 - **First Income Clarity publishing paused (owner instruction, 2026-10-25).** Uhiko Properties is the sole active social-publishing priority across all channels — see the top of `agent/instructions.md`. `daily-social-publishing.ts` currently runs Uhiko only. First Income Clarity's classifieds schedule (`daily-publishing.ts`) was not told to pause — flagged to the owner, not yet confirmed either way.
 
+## Video production (2026-10-25)
+
+- New `video_producer` subagent, the one subagent with its own direct Composio publish access (scoped to the same Facebook/Instagram/TikTok accounts) — it runs its whole generate → caption → QA → publish → verify pipeline itself.
+- **Video generation is not connected.** Both available routes cost real, nonrefundable money per clip with no free tier: Gemini Veo (auto-charges the Composio balance, ~$0.05/sec) or MiniMax image-to-video (needs the owner's own separately funded MiniMax account — true photo animation, closer to what was asked for, but not covered by Composio's free tier). Owner chose to hold off (2026-10-25) rather than pick one yet.
+- Enforced in code, not just instructions: `lib/composio-approval.ts` requires owner approval for `GEMINI_GENERATE_VIDEOS`, `MINIMAX_CREATE_VIDEO`, `MINIMAX_CREATE_LEGACY_VIDEO`, `MINIMAX_CREATE_TEMPLATE_VIDEO`, and `MINIMAX_REGENERATE_VIDEO` — even for `video_producer`'s own connection — so it can't accidentally start billing on an unattended run.
+- To actually turn this on: pick an engine, fund it (MiniMax: Nate creates and funds his own account, then connects it via Composio; Gemini Veo: just needs the owner to lift the approval gate, since it bills the existing Composio balance), and decide a daily cap.
+
 ## Verified social publishing
 
 ### Instagram
