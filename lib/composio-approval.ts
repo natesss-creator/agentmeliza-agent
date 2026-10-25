@@ -42,15 +42,16 @@ const WOOP_SOCIAL_PUBLISH = /\bWOOP_SOCIAL_(SCHEDULE_POST|PUBLISH_POST_NOW|CREAT
 const AUTONOMOUS_TIKTOK_SOCIAL_ACCOUNT_ID = "187715468390301696";
 
 // Video generation costs real, nonrefundable money per clip the instant it
-// starts (Gemini Veo charges the Composio balance per second; MiniMax's
-// video tools need the owner's own funded account) — unlike every other
-// tool call here, there is no free path. The owner has not yet picked an
-// engine or approved the spend (2026-10-25), so these always need approval,
-// even for a subagent (e.g. `video_producer`) that otherwise has direct
-// publish access. Do not relax this without an explicit owner decision on
-// which engine and what spending cap.
+// starts — there is no free path on any engine. Owner picked Replicate
+// running ByteDance Seedance as the engine (2026-10-25), ~$0.04-0.15/second
+// depending on tier (Lite vs Pro), billed to the owner's own Replicate
+// account once connected. Gemini Veo and MiniMax remain available but
+// unchosen. Every one of these still needs approval per call, even for a
+// subagent (e.g. `video_producer`) that otherwise has direct publish
+// access, until the owner confirms a tier and a daily spending cap — do not
+// relax this without that explicit decision.
 const BILLABLE_VIDEO_GENERATION =
-  /\b(GEMINI_GENERATE_VIDEOS|MINIMAX_CREATE_(VIDEO|LEGACY_VIDEO|TEMPLATE_VIDEO)|MINIMAX_REGENERATE_VIDEO)\b/;
+  /\b(GEMINI_GENERATE_VIDEOS|MINIMAX_CREATE_(VIDEO|LEGACY_VIDEO|TEMPLATE_VIDEO)|MINIMAX_REGENERATE_VIDEO|REPLICATE_(MODELS_)?PREDICTIONS_CREATE)\b/;
 
 function isAutonomousTikTokOnly(toolInput: unknown): boolean {
   let parsed: unknown = toolInput;

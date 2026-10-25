@@ -23,9 +23,11 @@ This file is the durable, non-secret operating record for Meliza's currently ver
 ## Video production (2026-10-25)
 
 - New `video_producer` subagent, the one subagent with its own direct Composio publish access (scoped to the same Facebook/Instagram/TikTok accounts) — it runs its whole generate → caption → QA → publish → verify pipeline itself.
-- **Video generation is not connected.** Both available routes cost real, nonrefundable money per clip with no free tier: Gemini Veo (auto-charges the Composio balance, ~$0.05/sec) or MiniMax image-to-video (needs the owner's own separately funded MiniMax account — true photo animation, closer to what was asked for, but not covered by Composio's free tier). Owner chose to hold off (2026-10-25) rather than pick one yet.
-- Enforced in code, not just instructions: `lib/composio-approval.ts` requires owner approval for `GEMINI_GENERATE_VIDEOS`, `MINIMAX_CREATE_VIDEO`, `MINIMAX_CREATE_LEGACY_VIDEO`, `MINIMAX_CREATE_TEMPLATE_VIDEO`, and `MINIMAX_REGENERATE_VIDEO` — even for `video_producer`'s own connection — so it can't accidentally start billing on an unattended run.
-- To actually turn this on: pick an engine, fund it (MiniMax: Nate creates and funds his own account, then connects it via Composio; Gemini Veo: just needs the owner to lift the approval gate, since it bills the existing Composio balance), and decide a daily cap.
+- **Engine chosen (2026-10-25): Replicate running ByteDance Seedance** (image-to-video — animates the real listing poster photo, unlike Gemini Veo's text-to-video). Not free: roughly $0.04-0.15/second depending on tier (Lite vs Pro), billed to the owner's own Replicate account.
+- **Not yet usable — two things outstanding:**
+  1. Replicate connection: initiated via Composio (`COMPOSIO_MANAGE_CONNECTIONS`, toolkit `replicate`) — owner needs to open the auth link and add their own Replicate API key/billing. Not yet confirmed active.
+  2. Per-clip approval: `lib/composio-approval.ts` requires owner approval for `REPLICATE_MODELS_PREDICTIONS_CREATE` (and still for `GEMINI_GENERATE_VIDEOS`/`MINIMAX_CREATE_*`, unchosen but left gated) — even for `video_producer`'s own connection — until the owner confirms a tier (Lite vs Pro) and a daily spending cap. Read-only Replicate calls and file upload are not gated, only the paid generation call.
+- To actually turn this on: confirm the Replicate connection is active, pick Lite vs Pro, confirm a daily cap, then lift the one approval-gate line for `REPLICATE_MODELS_PREDICTIONS_CREATE`.
 
 ## Verified social publishing
 
