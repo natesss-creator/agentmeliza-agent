@@ -16,8 +16,9 @@ This file is the durable, non-secret operating record for Meliza's currently ver
 
 ## Publishing pipeline (2026-10-25)
 
-- `agent/schedules/daily-social-publishing.ts` is the single daily trigger for social posts (First Income Clarity + Uhiko, across Facebook/Instagram/TikTok), replacing the former `uhiko-facebook-post.ts` (stale, Facebook-only, predated the mixed-brand Instagram policy) and `uhiko-new-listings.ts` (merged in). `daily-publishing.ts` is unrelated — it's First Income Clarity's classifieds/directory-site publishing via `publish_listing`, not social.
+- `agent/schedules/daily-social-publishing.ts` is the single daily trigger for social posts across Facebook/Instagram/TikTok, replacing the former `uhiko-facebook-post.ts` (stale, Facebook-only, predated the mixed-brand Instagram policy) and `uhiko-new-listings.ts` (merged in). `daily-publishing.ts` is unrelated — it's First Income Clarity's classifieds/directory-site publishing via `publish_listing`, not social.
 - Every drafted caption now passes through the `qa_reviewer` subagent (facts/tone/brand) before publishing — see "Autonomous Facebook, Instagram, and TikTok Publishing" step 5 in `agent/instructions.md`. Distinct from `lawyer` (legal/compliance, reviewed daily or before a sensitive claim).
+- **First Income Clarity publishing paused (owner instruction, 2026-10-25).** Uhiko Properties is the sole active social-publishing priority across all channels — see the top of `agent/instructions.md`. `daily-social-publishing.ts` currently runs Uhiko only. First Income Clarity's classifieds schedule (`daily-publishing.ts`) was not told to pause — flagged to the owner, not yet confirmed either way.
 
 ## Verified social publishing
 
