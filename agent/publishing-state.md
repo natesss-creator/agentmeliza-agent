@@ -46,10 +46,11 @@ This file is the durable, non-secret operating record for Meliza's currently ver
 - TikTok account: `@pesazako` ("Pesa Zako")
 - Route: Composio `woop_social` connection -> WoopSocial's own already-approved TikTok app (not a direct TikTok Developer API integration; that app is separately mid-review).
 - WoopSocial social_account_id: `187715468390301696`
-- Status: **connected 2026-10-25, not yet publish-verified**. First post must be independently verified (fetched back and confirmed live) before this line is upgraded to "verified working."
-- Approval: every WoopSocial post (`WOOP_SOCIAL_SCHEDULE_POST`) requires the owner's approval in chat — see `lib/composio-approval.ts`. This is a new platform; it is not yet in the autonomous Facebook/Instagram tier.
-- Post shape: `WOOP_SOCIAL_SCHEDULE_POST` takes `content` (text + optional media from WoopSocial's own media library — Meliza cannot upload directly to that library yet, so confirm with the owner how creative gets into WoopSocial before relying on media posts) and one `social_accounts` target with `platform: "TIKTOK"`, `social_account_id: "187715468390301696"`, `post_type`, `privacy_level`, and the required duet/stitch/comment/brand-content booleans.
-- `scheduled_for` is required and must be a future ISO-8601 UTC timestamp; there is no "publish immediately" mode documented yet — schedule a few minutes out and verify it published.
+- Status: **connected 2026-10-25, autonomous publishing authorized 2026-10-25, not yet publish-verified**. First post must be independently verified (fetched back and confirmed live) before this line is upgraded to "verified working."
+- Approval: autonomous, no chat approval needed — but scoped tightly in `lib/composio-approval.ts` (`isAutonomousTikTokOnly`) to exactly this `social_account_id` on `platform: "TIKTOK"`. Any other WoopSocial target (its own Facebook/Instagram/LinkedIn/Pinterest/X/YouTube/Threads routes) still requires approval.
+- Media: upload the creative first via `WOOP_SOCIAL_UPLOAD_MEDIA` to get a `media_id` in WoopSocial's media library, then reference that `media_id` in the post.
+- Publish: `WOOP_SOCIAL_PUBLISH_POST_NOW` publishes immediately — one `social_accounts` target with `platform: "TIKTOK"`, `social_account_id: "187715468390301696"`, `post_type` (`PHOTO` for listing/poster images, `VIDEO` for real video), `privacy_level`, and the required `allow_comment`/`allow_duet`/`allow_stitch`/`is_your_brand`/`is_branded_content`/`auto_add_music` booleans. `WOOP_SOCIAL_SCHEDULE_POST` is the scheduled-future alternative (`scheduled_for` required, future ISO-8601 UTC) if a delayed post is ever wanted instead.
+- Pacing (owner default, adjust once there's real data): at most 2 TikTok posts per rolling 24 hours, at least 4 hours apart — same as Instagram.
 
 ## Verified creative assets
 
