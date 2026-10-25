@@ -12,7 +12,7 @@ const BASE = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL || "agentmeliz
  */
 export default defineTool({
   description:
-    "List Uhiko Properties' published property listings from uhiko.com for social media posts. Each listing includes verified facts (headline, KES price, location, size, type, listing link, a description excerpt) and two ready-made 1080x1350 JPEG posters: posterA (editorial layout) and posterB (bold layout). Use the poster URLs exactly as given as the image for Facebook photo posts and Instagram media. Only listings with a verified total price are returned.",
+    "List Uhiko Properties' published property listings from uhiko.com for social media posts. Each listing includes verified facts (headline, KES price, location, size, type, listing link, a description excerpt) and two ready-made 1080x1350 JPEG posters: posterA (editorial layout) and posterB (bold layout). Use the poster URLs exactly as given as the image for Facebook photo posts, Instagram media, and TikTok/YouTube media uploads. Only listings with a verified total price AND at least one real photo are returned — a listing with no photos would otherwise render a plain gradient poster, so it is excluded here rather than posted with a placeholder.",
   inputSchema: z.object({
     limit: z.number().int().min(1).max(25).default(10).describe("How many listings to return, newest first."),
     excludeIds: z.array(z.number().int()).default([]).describe("Listing ids already posted recently, to skip."),
@@ -22,7 +22,16 @@ export default defineTool({
     const posts = await fetchAllProperties(postType);
     const listings = posts
       .map((post) => ({ post, listing: toListing(post) }))
-      .filter(({ listing }) => validateListing(listing).every((i) => i.field === "images"))
+      .filter(({ listing }) => {
+        // A missing-images warning is tolerated for the Agentiz feed (it only
+        // wants a "recommended" nudge there), but for social posts it is
+        // disqualifying: no real photo means no real poster. Exclude any
+        // listing with a blocking issue OTHER than images, then additionally
+        // require at least one real photo.
+        const issues = validateListing(listing);
+        const hasBlockingIssue = issues.some((i) => i.field !== "images");
+        return !hasBlockingIssue && (listing.images?.length ?? 0) > 0;
+      })
       .map(({ post, listing }) => {
         const p = toPosterData(listing);
         return {

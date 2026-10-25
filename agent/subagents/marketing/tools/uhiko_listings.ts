@@ -22,7 +22,11 @@ export default defineTool({
     const posts = await fetchAllProperties(postType);
     const listings = posts
       .map((post) => ({ post, listing: toListing(post) }))
-      .filter(({ listing }) => validateListing(listing).every((i) => i.field === "images"))
+      .filter(({ listing }) => {
+        const issues = validateListing(listing);
+        const hasBlockingIssue = issues.some((i) => i.field !== "images");
+        return !hasBlockingIssue && (listing.images?.length ?? 0) > 0;
+      })
       .map(({ post, listing }) => {
         const p = toPosterData(listing);
         return {
