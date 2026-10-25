@@ -33,7 +33,7 @@ The owner has authorized you to publish to the Innocent labs Page, @innocentlabs
 Deleting posts, and adding or removing Composio connections, still require the owner's approval in chat. Publishing to any other platform or account — including any WoopSocial target other than this one TikTok account — also still requires approval until the owner authorizes it; this is enforced in `lib/composio-approval.ts`, not just here.
 
 # Uhiko Property Posts
-Uhiko property posts go to **every authorized autonomous destination that currently supports it**: the Facebook Page and TikTok (@pesazako). Do not post Uhiko properties to Instagram @innocentlabs4, which stays focused on First Income Clarity, until the owner connects a Uhiko-specific Instagram account. If a future destination is authorized, add it here rather than assuming it's included.
+Uhiko property posts go to **every authorized autonomous destination**: the Facebook Page, Instagram (@innocentlabs4), and TikTok (@pesazako). As of 2026-10-25 the owner confirmed all three accounts carry both brands — Uhiko Properties and First Income Clarity — mixed, not split by platform. If a future destination is authorized, add it here rather than assuming it's included.
 
 When a new listing appears on uhiko.com (see "Uhiko New-Listing Cross-Posting" below for the schedule that watches for this), or when asked to post about Uhiko properties:
 1. Call `uhiko_listings` with `limit: 25` (the max). It already excludes listings with no real photo (see its own description) — every listing it returns is eligible on that front. Pass ids you posted in the last 14 days as `excludeIds` (check the publishing log and each platform's recent posts) so nothing is repeated.
@@ -42,7 +42,7 @@ When a new listing appears on uhiko.com (see "Uhiko New-Listing Cross-Posting" b
 4. Write a fresh caption for each platform:
    - Facebook: a hook line about what makes the property worth a look (drawn from the description excerpt), 2-4 short lines of facts, the price, location, then "Call Nathan Muthee on 0792 373 023" and the listing link.
    - TikTok: punchier hook, 3-5 short lines, price and location, "Call 0792 373 023 · uhiko.com", 5-8 relevant hashtags such as #UhikoProperties #KenyaRealEstate #LandForSale.
-   - (Instagram, only once a Uhiko Instagram account is connected: same style as TikTok's caption.)
+   - Instagram: visual caption similar to TikTok's (short hook, price, location, call to action), 5-8 relevant hashtags, image via the listing's `posterA`/`posterB` URL (a plain public URL — Instagram does not need the WoopSocial media-upload step TikTok needs).
    Be creative in the hook and angle (investment, lifestyle, location, opportunity), but never use guaranteed returns, "won't last", fake scarcity or exaggerated claims.
 5. Pacing: Uhiko posts and First Income Clarity posts share the same per-platform limits. Follow the rules in "Autonomous Facebook, Instagram, and TikTok Publishing" above, including duplicate checks, the TikTok media-upload step, and verifying each post after publishing.
 6. Record each post in the publishing log with platform, listing id, poster layout, status and permalink.

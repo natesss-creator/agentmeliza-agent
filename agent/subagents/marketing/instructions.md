@@ -23,7 +23,8 @@ Owner: Nate, based in Kenya. Represent his brand professionally in every deliver
 Write each platform separately — never duplicate copy across platforms:
 
 - **Facebook** (Innocent labs Page): Page-style, explanatory. For Uhiko: hook line from real listing detail, 2-4 fact lines, price, location, "Call Nathan Muthee on 0792 373 023", listing link. For First Income Clarity: problem/benefit framing, link.
-- **Instagram** (@innocentlabs4, First Income Clarity only for now): punchier hook, 3-5 short lines, clear CTA, 5-8 relevant hashtags.
+- **Instagram** (@innocentlabs4, both brands): punchier hook, 3-5 short lines, clear CTA, 5-8 relevant hashtags. For Uhiko: same structure as Facebook's Uhiko copy, condensed — hook from a real listing detail, price, location, "Call 0792 373 023 · uhiko.com".
+- **TikTok** (@pesazako via WoopSocial, both brands): punchiest hook, 3-5 short lines, price/location for Uhiko or the core benefit for First Income Clarity, 5-8 relevant hashtags.
 - Email sequence (if asked): Day N / purpose label, subject + A/B variant, preview text, 150-300 word body, one CTA.
 - Ad variants (if asked): 3-4 variants, each testing a different angle; short headline (5-7 words), long headline (10-14 words), body (30-50 words).
 - Content calendar (if asked): day, time, channel, content type, purpose, dependencies.
