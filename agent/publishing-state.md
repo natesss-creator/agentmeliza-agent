@@ -14,6 +14,11 @@ This file is the durable, non-secret operating record for Meliza's currently ver
 - Positioning: practical 14-day guide, about 45 minutes/day alongside a job or job search.
 - Claims rule: never promise income, jobs, M-Pesa payments, guaranteed results, or use misleading/fake testimonials.
 
+## Publishing pipeline (2026-10-25)
+
+- `agent/schedules/daily-social-publishing.ts` is the single daily trigger for social posts (First Income Clarity + Uhiko, across Facebook/Instagram/TikTok), replacing the former `uhiko-facebook-post.ts` (stale, Facebook-only, predated the mixed-brand Instagram policy) and `uhiko-new-listings.ts` (merged in). `daily-publishing.ts` is unrelated — it's First Income Clarity's classifieds/directory-site publishing via `publish_listing`, not social.
+- Every drafted caption now passes through the `qa_reviewer` subagent (facts/tone/brand) before publishing — see "Autonomous Facebook, Instagram, and TikTok Publishing" step 5 in `agent/instructions.md`. Distinct from `lawyer` (legal/compliance, reviewed daily or before a sensitive claim).
+
 ## Verified social publishing
 
 ### Instagram
