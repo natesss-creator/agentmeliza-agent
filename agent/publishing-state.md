@@ -23,9 +23,11 @@ This file is the durable, non-secret operating record for Meliza's currently ver
 - Status: **verified working**
 - Supported flow: create image media -> publish -> independently verify permalink.
 - Requirement: use fresh/varied creative; do not repeatedly reuse the same image.
+- As of 2026-10-25 this account carries both brands (Uhiko Properties and First Income Clarity), owner-confirmed.
 - Verified public posts include:
   - https://www.instagram.com/p/De2PuZiiYl2/ — "The Fork in the Road 🧭"
   - https://www.instagram.com/p/De2PsgKnXZj/ — "Your Next Move Is Smaller Than You Think. ✍🏾"
+  - https://www.instagram.com/p/De5aoHzCXdh/ — Uhiko UH-18445 Joska plot (first Uhiko post on this account)
 
 ### Facebook
 
