@@ -43,6 +43,7 @@ This file is the durable, non-secret operating record for Meliza's currently ver
   - https://www.instagram.com/p/De2PuZiiYl2/ — "The Fork in the Road 🧭"
   - https://www.instagram.com/p/De2PsgKnXZj/ — "Your Next Move Is Smaller Than You Think. ✍🏾"
   - https://www.instagram.com/p/De5aoHzCXdh/ — Uhiko UH-18445 Joska plot (first Uhiko post on this account)
+  - https://www.instagram.com/p/De8PE73DYv7/ — Uhiko "Prime Commercial Office Towers, Upper Hill, Nairobi" (2026-10-26 scheduled run, part of a 3-listing x 3-platform batch)
 
 ### Facebook
 
