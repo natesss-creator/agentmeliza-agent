@@ -15,19 +15,29 @@ import { openai } from "eve/models/openai";
  * configured) so Meliza keeps running. If an OPENAI_API_KEY is ever added in
  * Vercel, GPT becomes the second fallback automatically.
  *
+ * Tiers: melizaModel("fast") selects Haiku for lightweight subagents
+ * (qa_reviewer, auditor) when Claude is active; default "main" is Sonnet.
+ *
  * To force Claude back on for a quick test once credits are restored,
  * without touching code, set MELIZA_FORCE_ANTHROPIC=1 in Vercel env vars.
  */
-export function melizaModel() {
+export type ModelTier = "main" | "fast";
+
+export function melizaModel(tier: ModelTier = "main") {
   const forceAnthropic = process.env.MELIZA_FORCE_ANTHROPIC === "1";
   const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY);
   const hasGemini = Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
   const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+  // Token optimization: cheap judge/audit subagents use Haiku when Claude is
+  // the active provider; everything else keeps Sonnet. Gemini/OpenAI paths
+  // are unchanged.
+  const claude = () =>
+    anthropic(tier === "fast" ? "claude-haiku-5-5" : "claude-sonnet-5-5");
 
-  if (forceAnthropic && hasAnthropic) return anthropic("claude-sonnet-5-5");
+  if (forceAnthropic && hasAnthropic) return claude();
   if (hasGemini) return google("gemini-3.5-flash-lite");
   if (hasOpenAI) return openai();
-  if (hasAnthropic) return anthropic("claude-sonnet-5-5");
+  if (hasAnthropic) return claude();
 
   throw new Error(
     "No model API key configured. Set one of ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or OPENAI_API_KEY in Vercel.",
