@@ -12,7 +12,7 @@ const BASE = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL || "agentmeliz
  */
 export default defineTool({
   description:
-    "List Uhiko Properties' published property listings from uhiko.com for social media posts. Each listing includes verified facts (headline, KES price, location, size, type, listing link, a description excerpt) and two ready-made 1080x1350 JPEG posters: posterA (editorial layout) and posterB (bold layout). Use the poster URLs exactly as given as the image for Facebook photo posts, Instagram media, and TikTok/YouTube media uploads. Only listings with a verified total price AND at least one real photo are returned — a listing with no photos would otherwise render a plain gradient poster, so it is excluded here rather than posted with a placeholder.",
+    "List Uhiko Properties' published property listings from uhiko.com for social media posts. Each listing includes verified facts (headline, KES price, location, size, type, listing link, a description excerpt) and four ready-made 1080x1350 JPEG posters: posterA (editorial), posterB (bold), posterC (signature cover, adds a price-per-acre badge on land) and posterD (cream framed card with price tag). Use the poster URLs exactly as given as the image for Facebook photo posts, Instagram media, and TikTok/YouTube media uploads. Only listings with a verified total price AND at least one real photo are returned — a listing with no photos would otherwise render a plain gradient poster, so it is excluded here rather than posted with a placeholder.",
   inputSchema: z.object({
     limit: z.number().int().min(1).max(25).default(10).describe("How many listings to return, newest first."),
     excludeIds: z.array(z.number().int()).default([]).describe("Listing ids already posted recently, to skip."),
@@ -46,6 +46,8 @@ export default defineTool({
           descriptionExcerpt: (listing.text.en || "").slice(0, 600),
           posterA: `${BASE}/api/posters/uh-${p.id}-a.jpg`,
           posterB: `${BASE}/api/posters/uh-${p.id}-b.jpg`,
+          posterC: `${BASE}/api/posters/uh-${p.id}-c.jpg`,
+          posterD: `${BASE}/api/posters/uh-${p.id}-d.jpg`,
           updated: post.modified_gmt,
         };
       })
