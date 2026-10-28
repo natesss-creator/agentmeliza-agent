@@ -40,6 +40,8 @@ export default defineTool({
           listingUrl: p.link,
           posterA: `${BASE}/api/posters/uh-${p.id}-a.jpg`,
           posterB: `${BASE}/api/posters/uh-${p.id}-b.jpg`,
+          posterC: `${BASE}/api/posters/uh-${p.id}-c.jpg`,
+          posterD: `${BASE}/api/posters/uh-${p.id}-d.jpg`,
         };
       })
       .filter((l) => !excludeIds.includes(l.id))

@@ -41,6 +41,8 @@ export default defineTool({
           descriptionExcerpt: (listing.text.en || "").slice(0, 600),
           posterA: `${BASE}/api/posters/uh-${p.id}-a.jpg`,
           posterB: `${BASE}/api/posters/uh-${p.id}-b.jpg`,
+          posterC: `${BASE}/api/posters/uh-${p.id}-c.jpg`,
+          posterD: `${BASE}/api/posters/uh-${p.id}-d.jpg`,
           updated: post.modified_gmt,
         };
       })

@@ -10,6 +10,8 @@ export type PosterData = {
   typeLabel: string;
   photo?: string;
   link?: string;
+  /** Land listings only: price worked out per acre (or per m2 for small plots). */
+  perUnitText?: string;
 };
 
 const ACRE_M2 = 4046.8564;
@@ -49,6 +51,13 @@ const TYPE_LABEL: Array<[RegExp, string]> = [
   [/house|bungalow/, "House"],
 ];
 
+function perUnit(amount: number, m2: number): string | undefined {
+  const acres = m2 / ACRE_M2;
+  const v = acres >= 0.12 ? amount / acres : amount / m2;
+  if (!isFinite(v) || v <= 0) return undefined;
+  return `${formatKes(v)} / ${acres >= 0.12 ? "acre" : "m²"}`;
+}
+
 export function toPosterData(l: Listing): PosterData {
   // Headline: listing title without emoji, "For sale:" prefixes or the trailing price.
   const headline = stripEmoji(l.title.en || "")
@@ -57,6 +66,9 @@ export function toPosterData(l: Listing): PosterData {
     .replace(/\s+—\s+.*$/, "")
     .slice(0, 80);
   const amount = l.deal_type === "sale" ? l.price.sum_total : l.price.per_month;
+  const lotM2 = l.lot?.size_s_metric;
+  const perUnitText =
+    l.deal_type === "sale" && amount && lotM2 && /land|farming/.test(l.property_type) ? perUnit(amount, lotM2) : undefined;
   const place = [l.geo.locality, l.geo.area_1].filter((x, i, a) => x && a.indexOf(x) === i).join(", ");
   return {
     id: Number(l.external_id.replace(/^UH-/, "")),
@@ -68,5 +80,6 @@ export function toPosterData(l: Listing): PosterData {
     typeLabel: TYPE_LABEL.find(([re]) => re.test(l.property_type))?.[1] ?? "Property",
     photo: l.images[0],
     link: l.info_link,
+    perUnitText,
   };
 }
