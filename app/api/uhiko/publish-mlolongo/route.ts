@@ -39,9 +39,12 @@ async function deleteWp(base: string, headers: Record<string, string>, path: str
 }
 
 export async function POST(request: Request) {
-  const expected = process.env.UHIKO_MLOLONGO_PUBLISH_NONCE;
-  const supplied = request.headers.get("x-meliza-publish-nonce");
-  if (!expected || supplied !== expected) return jsonError("Unauthorized publication request", 401);
+  const nonce = process.env.UHIKO_MLOLONGO_PUBLISH_NONCE;
+  const trigger = process.env.UHIKO_MLOLONGO_TRIGGER;
+  const suppliedNonce = request.headers.get("x-meliza-publish-nonce");
+  const suppliedTrigger = request.headers.get("x-meliza-publish-trigger");
+  const authorized = (nonce && suppliedNonce === nonce) || (trigger && suppliedTrigger === trigger);
+  if (!authorized) return jsonError("Unauthorized publication request", 401);
 
   let postType = "";
   let postId: number | null = null;
@@ -55,14 +58,12 @@ export async function POST(request: Request) {
     const { base, headers } = wpConfig();
     postType = await detectPropertyType();
 
-    // Exact duplicate check before any write.
     const duplicates = await wpJson(base, headers, `/wp/v2/${postType}?search=${encodeURIComponent(TITLE)}&per_page=100&context=edit`);
     const exact = Array.isArray(duplicates) && duplicates.find((p: any) => String(p?.title?.rendered || "").trim().toLowerCase() === TITLE.toLowerCase());
     if (exact) {
       return NextResponse.json({ status: "duplicate", postType, id: exact.id, link: exact.link, title: TITLE, message: "Exact title already exists; no write performed." }, { status: 409 });
     }
 
-    // Create as draft first; publish only after all five media uploads succeed.
     const draft = await wpJson(base, headers, `/wp/v2/${postType}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -97,7 +98,6 @@ export async function POST(request: Request) {
     const publicLink = String(published.link || "");
     if (!publicLink) throw new Error("WordPress published the post but returned no public link");
 
-    // Public verification: the public page must return 200 and contain the exact title.
     const publicRes = await fetch(publicLink, { cache: "no-store", redirect: "follow" });
     const publicHtml = await publicRes.text();
     const verified = publicRes.ok && publicHtml.toLowerCase().includes(TITLE.toLowerCase());
