@@ -57,10 +57,17 @@ export async function POST(request: Request) {
     const { base, headers } = wpConfig();
     postType = await detectPropertyType();
 
+    // Authenticate the configured WordPress account before attempting the write.
+    // The duplicate check intentionally uses the public collection context: the
+    // previous implementation used context=edit, which requires edit capabilities
+    // even for a read and caused a false blocker for this custom post type.
+    const me = await wpJson(base, headers, `/wp/v2/users/me`);
+    if (!me?.id) throw new Error("WordPress authentication succeeded but /users/me returned no user id");
+
     const duplicates = await wpJson(
       base,
       headers,
-      `/wp/v2/${postType}?search=${encodeURIComponent(TITLE)}&per_page=100&context=edit`,
+      `/wp/v2/${postType}?search=${encodeURIComponent(TITLE)}&per_page=100`,
     );
     const exact = Array.isArray(duplicates) && duplicates.find(
       (p: any) => String(p?.title?.rendered || "").trim().toLowerCase() === TITLE.toLowerCase(),
