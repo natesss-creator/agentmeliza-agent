@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
 import { detectPropertyType } from "@/lib/agentiz/wordpress";
 
 export const runtime = "nodejs";
@@ -34,6 +36,18 @@ async function wpJson(base: string, headers: Record<string, string>, path: strin
   return body;
 }
 
+// The five approved listing photos live in assets/mlolongo (bundled via
+// outputFileTracingIncludes in next.config.ts). They are used whenever the
+// trigger request does not upload its own images.
+async function bundledImages(): Promise<{ name: string; bytes: ArrayBuffer }[]> {
+  const dir = path.join(process.cwd(), "assets", "mlolongo");
+  const names = (await readdir(dir)).filter((n) => /\.jpe?g$/i.test(n)).sort();
+  return Promise.all(names.map(async (name) => {
+    const buf = await readFile(path.join(dir, name));
+    return { name, bytes: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer };
+  }));
+}
+
 async function deleteWp(base: string, headers: Record<string, string>, path: string) {
   try { await wpJson(base, headers, path, { method: "DELETE" }); } catch {}
 }
@@ -50,15 +64,26 @@ export async function POST(request: Request) {
   let postId: number | null = null;
   const mediaIds: number[] = [];
   try {
-    const form = await request.formData();
-    const files = form.getAll("images").filter((x): x is File => x instanceof File);
-    if (files.length !== 5) return jsonError(`Exactly five JPEG images are required; received ${files.length}`, 400);
-    if (files.some((f) => !f.type.startsWith("image/jpeg"))) return jsonError("All five supplied images must be JPEG files", 400);
+    let images: { name: string; bytes: ArrayBuffer }[] = [];
+    if ((request.headers.get("content-type") || "").includes("multipart/form-data")) {
+      const form = await request.formData();
+      const files = form.getAll("images").filter((x): x is File => x instanceof File);
+      if (files.some((f) => !f.type.startsWith("image/jpeg"))) return jsonError("All supplied images must be JPEG files", 400);
+      images = await Promise.all(files.map(async (f) => ({ name: f.name, bytes: await f.arrayBuffer() })));
+    }
+    if (images.length === 0) images = await bundledImages();
+    if (images.length !== 5) return jsonError(`Exactly five JPEG images are required; found ${images.length}`, 400);
 
     const { base, headers } = wpConfig();
     postType = await detectPropertyType();
 
-    const duplicates = await wpJson(base, headers, `/wp/v2/${postType}?search=${encodeURIComponent(TITLE)}&per_page=100&context=edit`);
+    // Same fix as the Nyathuna publisher (e8cb98f): confirm the account authenticates,
+    // and run the duplicate search without context=edit, which needs edit
+    // capabilities even for a read and falsely blocked this custom post type.
+    const me = await wpJson(base, headers, `/wp/v2/users/me`);
+    if (!me?.id) throw new Error("WordPress authentication succeeded but /users/me returned no user id");
+
+    const duplicates = await wpJson(base, headers, `/wp/v2/${postType}?search=${encodeURIComponent(TITLE)}&per_page=100`);
     const exact = Array.isArray(duplicates) && duplicates.find((p: any) => String(p?.title?.rendered || "").trim().toLowerCase() === TITLE.toLowerCase());
     if (exact) {
       return NextResponse.json({ status: "duplicate", postType, id: exact.id, link: exact.link, title: TITLE, message: "Exact title already exists; no write performed." }, { status: 409 });
@@ -71,8 +96,8 @@ export async function POST(request: Request) {
     });
     postId = Number(draft.id);
 
-    for (const file of files) {
-      const bytes = await file.arrayBuffer();
+    for (const file of images) {
+      const bytes = file.bytes;
       const media = await wpJson(base, headers, "/wp/v2/media", {
         method: "POST",
         headers: {
