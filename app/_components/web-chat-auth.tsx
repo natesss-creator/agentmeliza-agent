@@ -1,6 +1,5 @@
-"use client";
-
-import { LogOutIcon } from "lucide-react";
+import Link from "next/link";
+import { LogOutIcon, UserRoundPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,9 +47,7 @@ export function SignIn() {
               <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
               Ready
             </span>
-            <span aria-hidden="true" className="text-border">
-              /
-            </span>
+            <span aria-hidden="true" className="text-border">/</span>
             <span>Sign in to start a session</span>
           </p>
           <Button className="mt-3 w-full gap-2 text-sm" disabled={pending} onClick={signIn}>
@@ -59,11 +56,7 @@ export function SignIn() {
             </svg>
             <span className="leading-5">{pending ? "Redirecting…" : "Continue with Vercel"}</span>
           </Button>
-          {error ? (
-            <p className="text-destructive text-sm" role="alert">
-              {error}
-            </p>
-          ) : null}
+          {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
         </section>
       </div>
     </main>
@@ -72,17 +65,8 @@ export function SignIn() {
 
 function EveWordmark({ className }: { readonly className?: string }) {
   return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      viewBox="0 0 169 53"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M169 8.47h-51.39L81.73 53H70.36L113 0H169zM169 44.51v8.47h-45.87V44.5zM45.87 52.98H0V44.5h45.87zM38.66 30.55H0v-8.47h38.66z"
-        fill="currentColor"
-      />
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 169 53" xmlns="http://www.w3.org/2000/svg">
+      <path d="M169 8.47h-51.39L81.73 53H70.36L113 0H169zM169 44.51v8.47h-45.87V44.5zM45.87 52.98H0V44.5h45.87zM38.66 30.55H0v-8.47h38.66z" fill="currentColor" />
       <path d="M169 30.55h-38.66v-8.47H169zM75.52 8.47H0V0h75.52z" fill="currentColor" />
     </svg>
   );
@@ -119,45 +103,29 @@ export function AccountControl({
     <div className="fixed top-3 left-4 z-30 flex h-8 items-center">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            aria-label={`Open account menu for ${name}`}
-            className="relative size-7 cursor-pointer overflow-hidden rounded-full p-0"
-            size="icon-sm"
-            variant="ghost"
-          >
+          <Button aria-label={`Open account menu for ${name}`} className="relative size-7 cursor-pointer overflow-hidden rounded-full p-0" size="icon-sm" variant="ghost">
             {image && !imageFailed ? (
-              <img
-                alt=""
-                className="size-full object-cover"
-                onError={() => setImageFailed(true)}
-                src={image}
-              />
+              <img alt="" className="size-full object-cover" onError={() => setImageFailed(true)} src={image} />
             ) : (
-              <span aria-hidden="true" className="font-medium text-xs">
-                {initials}
-              </span>
+              <span aria-hidden="true" className="font-medium text-xs">{initials}</span>
             )}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-full border border-black/20 dark:border-white/25"
-            />
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-full border border-black/20 dark:border-white/25" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64">
           <div className="min-w-0 px-2 py-1.5 text-sm">
-            <span className="block truncate font-medium leading-5" title={name}>
-              {name}
-            </span>
-            <span className="block truncate text-muted-foreground leading-5" title={email}>
-              {email}
-            </span>
+            <span className="block truncate font-medium leading-5" title={name}>{name}</span>
+            <span className="block truncate text-muted-foreground leading-5" title={email}>{email}</span>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer justify-between"
-            disabled={pending}
-            onSelect={signOut}
-          >
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/settings/connections">
+              Social accounts
+              <UserRoundPlusIcon aria-hidden="true" />
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="cursor-pointer justify-between" disabled={pending} onSelect={signOut}>
             {pending ? "Logging out…" : "Log out"}
             <LogOutIcon aria-hidden="true" />
           </DropdownMenuItem>
@@ -169,8 +137,6 @@ export function AccountControl({
 
 function getInitials(name: string, email: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]?.[0] ?? ""}${parts.at(-1)?.[0] ?? ""}`.toUpperCase();
-  }
+  if (parts.length >= 2) return `${parts[0]?.[0] ?? ""}${parts.at(-1)?.[0] ?? ""}`.toUpperCase();
   return (parts[0]?.[0] ?? email[0] ?? "?").toUpperCase();
 }
