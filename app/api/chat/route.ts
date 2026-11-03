@@ -1,28 +1,53 @@
-import { streamText } from "ai";
+import { stepCountIs, streamText } from "ai";
 import { melizaModel } from "@/lib/model-routing";
 import { auth } from "@/lib/auth";
+import { createSocialSessionTools } from "@/lib/composio-session-tools";
 
 export const maxDuration = 60;
 
 const SYSTEM_PROMPT = `You are Meliza, the user's automation and operations agent.
-Be accurate about execution status. Never claim an action succeeded unless the underlying tool or service returned verifiable success. Prefer authorized integrations and read-only verification before destructive or public actions. Preserve existing project constraints and avoid inventing credentials, listings, URLs, or publication records.`;
+Be truthful about actions: never claim an action succeeded unless the connected service returned verifiable success. Use only tools available in this request, which are scoped to the currently signed-in user. Do not claim access to an account that is not connected. Ask the user before consequential external actions, and do not claim that a pending or failed tool call completed.`;
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV !== "development") {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session) return new Response("Unauthorized", { status: 401 });
-  }
+  const session = process.env.NODE_ENV === "development"
+    ? await auth.api.getSession({ headers: request.headers }).catch(() => null)
+    : await auth.api.getSession({ headers: request.headers });
+  const userId = session?.user.id ?? (process.env.NODE_ENV === "development" ? "meliza-development-user" : null);
+  if (!userId) return new Response("Unauthorized", { status: 401 });
 
-  const body = (await request.json()) as { messages?: unknown };
-  if (!Array.isArray(body.messages)) {
+  let body: { messages?: unknown };
+  try {
+    body = (await request.json()) as { messages?: unknown };
+  } catch {
+    return new Response("Invalid JSON payload", { status: 400 });
+  }
+  if (!Array.isArray(body.messages) || body.messages.length > 100) {
     return new Response("Invalid messages payload", { status: 400 });
   }
 
-  const result = streamText({
-    model: melizaModel(),
-    system: SYSTEM_PROMPT,
-    messages: body.messages as Parameters<typeof streamText>[0]["messages"],
-  });
+  let social: Awaited<ReturnType<typeof createSocialSessionTools>>;
+  try {
+    social = await createSocialSessionTools(userId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not initialize social integrations.";
+    return new Response(message, { status: 502 });
+  }
 
-  return result.toTextStreamResponse();
+  try {
+    const result = streamText({
+      model: melizaModel(),
+      system: SYSTEM_PROMPT,
+      messages: body.messages as Parameters<typeof streamText>[0]["messages"],
+      tools: social.tools,
+      stopWhen: stepCountIs(6),
+      onFinish: social.close,
+      onError: social.close,
+      onAbort: social.close,
+    });
+
+    return result.toTextStreamResponse();
+  } catch (error) {
+    await social.close();
+    throw error;
+  }
 }
