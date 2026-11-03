@@ -3,102 +3,143 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const MODEL_PROVIDER = "Google";
+const MODEL_NAME = "gemini-3.5-flash-lite";
+
 type Check = { ok: boolean; detail: string };
 
-/** One cheap authenticated call to Anthropic (list models). Never returns the key. */
-async function checkAnthropic(): Promise<Check> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return { ok: false, detail: "ANTHROPIC_API_KEY not set" };
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/models?limit=100", {
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
-      cache: "no-store",
-    });
-    if (!res.ok) return { ok: false, detail: `Anthropic returned HTTP ${res.status}` };
-    const body: any = await res.json();
-    const ids: string[] = (body?.data || []).map((m: any) => m.id);
-    return ids.includes("claude-sonnet-5-5")
-      ? { ok: true, detail: "key valid; claude-sonnet-5-5 available" }
-      : { ok: false, detail: `key valid but claude-sonnet-5-5 not listed (${ids.length} models visible)` };
-  } catch (e) {
-    return { ok: false, detail: `network error: ${e instanceof Error ? e.message : String(e)}` };
+function parseMcpResponse(text: string): Record<string, unknown> {
+  const trimmed = text.trim();
+  const candidates = trimmed.startsWith("{")
+    ? [trimmed]
+    : trimmed
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice("data:".length).trim());
+
+  for (const candidate of candidates) {
+    try {
+      const parsed: unknown = JSON.parse(candidate);
+      if (parsed && typeof parsed === "object") {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // SSE streams can contain non-JSON events; try the next data line.
+    }
   }
+
+  throw new Error("Composio returned an invalid MCP response");
 }
 
-/** MCP initialize + tools/list against Composio Connect. Never returns the key. */
+/** Checks whether the configured Composio key can list its available tools. */
 async function checkComposio(): Promise<Check> {
   const key = process.env.COMPOSIO_API_KEY;
-  if (!key) return { ok: false, detail: "COMPOSIO_API_KEY not set" };
+  if (!key) return { ok: false, detail: "COMPOSIO_API_KEY is not configured" };
+
   const url = "https://connect.composio.dev/mcp";
-  const headers: Record<string, string> = {
+  const headers = {
     "x-consumer-api-key": key,
     "Content-Type": "application/json",
     Accept: "application/json, text/event-stream",
   };
-  const parse = async (res: Response) => {
-    const text = await res.text();
-    const json = text.trim().startsWith("{") ? text : (text.match(/^data: (.*)$/m)?.[1] ?? "{}");
-    try { return JSON.parse(json); } catch { return {}; }
-  };
+
   try {
     const init = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        jsonrpc: "2.0", id: 1, method: "initialize",
-        params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "meliza-status", version: "1" } },
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "meliza-status", version: "1" },
+        },
       }),
       cache: "no-store",
     });
-    if (!init.ok) return { ok: false, detail: `Composio initialize returned HTTP ${init.status}` };
-    const session = init.headers.get("mcp-session-id");
-    await parse(init);
+    if (!init.ok) {
+      return { ok: false, detail: `Composio initialize returned HTTP ${init.status}` };
+    }
+
+    const initBody = parseMcpResponse(await init.text());
+    if (initBody.error) {
+      return { ok: false, detail: "Composio rejected the initialize request" };
+    }
+
+    const sessionId = init.headers.get("mcp-session-id");
     const list = await fetch(url, {
       method: "POST",
-      headers: { ...headers, ...(session ? { "mcp-session-id": session } : {}) },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
-      cache: "no-store",
-    });
-    if (!list.ok) return { ok: false, detail: `Composio tools/list returned HTTP ${list.status}` };
-    const body = await parse(list);
-    const n = body?.result?.tools?.length ?? 0;
-    if (n === 0) return { ok: false, detail: "connected but no tools returned" };
-
-    // Read-only: confirm this key sees the owner's Facebook/Instagram connections.
-    const conn = await fetch(url, {
-      method: "POST",
-      headers: { ...headers, ...(session ? { "mcp-session-id": session } : {}) },
+      headers: {
+        ...headers,
+        ...(sessionId ? { "mcp-session-id": sessionId } : {}),
+      },
       body: JSON.stringify({
-        jsonrpc: "2.0", id: 3, method: "tools/call",
-        params: { name: "COMPOSIO_MANAGE_CONNECTIONS", arguments: { toolkits: [{ name: "facebook", action: "list" }, { name: "instagram", action: "list" }] } },
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
       }),
       cache: "no-store",
     });
-    const cbody = await parse(conn);
-    const text: string = (cbody?.result?.content || []).map((c: any) => c?.text || "").join(" ");
-    const fb = /meliza-facebook/.test(text);
-    const ig = /meliza-instagram/.test(text);
+    if (!list.ok) {
+      return { ok: false, detail: `Composio tools/list returned HTTP ${list.status}` };
+    }
+
+    const body = parseMcpResponse(await list.text());
+    if (body.error) {
+      return { ok: false, detail: "Composio could not list available tools" };
+    }
+
+    const result = body.result;
+    const tools =
+      result && typeof result === "object" && "tools" in result
+        ? (result as { tools?: unknown }).tools
+        : undefined;
+    if (!Array.isArray(tools)) {
+      return { ok: false, detail: "Composio returned an unexpected tools/list response" };
+    }
+
+    return { ok: true, detail: `connected; ${tools.length} tools available` };
+  } catch (error) {
     return {
-      ok: fb && ig,
-      detail: `key valid; ${n} tools; meliza-facebook ${fb ? "found" : "NOT found"}, meliza-instagram ${ig ? "found" : "NOT found"}`,
+      ok: false,
+      detail: `connection check failed: ${error instanceof Error ? error.message : String(error)}`,
     };
-  } catch (e) {
-    return { ok: false, detail: `network error: ${e instanceof Error ? e.message : String(e)}` };
   }
 }
 
-/** Which integrations are live. Reports presence only, never key values. ?check=1 verifies keys. */
+/** Reports configured integrations; ?check=1 performs a live Composio connectivity check. */
 export async function GET(request: Request) {
-  const claude = Boolean(process.env.ANTHROPIC_API_KEY);
-  const composio = Boolean(process.env.COMPOSIO_API_KEY);
+  const modelConfigured = Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  const composioConfigured = Boolean(process.env.COMPOSIO_API_KEY);
   const verify = new URL(request.url).searchParams.get("check") === "1";
+
   return NextResponse.json({
-    model: claude ? "claude-sonnet-5-5 (Anthropic direct)" : "gemini-3.5-flash-lite (fallback: ANTHROPIC_API_KEY not set)",
-    socialPublishing: composio
-      ? { status: "enabled", via: "Composio", accounts: ["Facebook Page: Innocent labs", "Instagram: @innocentlabs4"], approval: "autonomous for Facebook (max 3 posts/24h) and Instagram (max 2 posts/24h); deletes and connection changes need owner approval" }
-      : { status: "disabled", reason: "COMPOSIO_API_KEY not set in Vercel" },
+    model: {
+      provider: MODEL_PROVIDER,
+      name: MODEL_NAME,
+      status: modelConfigured ? "configured" : "not_configured",
+    },
+    socialPublishing: {
+      provider: "Composio",
+      status: composioConfigured ? "configured" : "not_configured",
+    },
     agentizFeed: "/api/agentiz/feed",
     deployment: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
-    ...(verify ? { checks: { anthropic: await checkAnthropic(), composio: await checkComposio() } } : {}),
+    ...(verify
+      ? {
+          checks: {
+            model: {
+              ok: modelConfigured,
+              detail: modelConfigured
+                ? "Google API key is configured; model reachability was not tested"
+                : "GOOGLE_GENERATIVE_AI_API_KEY is not configured",
+            },
+            composio: await checkComposio(),
+          },
+        }
+      : {}),
   });
 }
