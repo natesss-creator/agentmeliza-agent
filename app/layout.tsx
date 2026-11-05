@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { PwaInstall } from "./_components/pwa-install";
 import "./globals.css";
 
 const sans = Geist({
@@ -24,11 +25,18 @@ export const metadata: Metadata = {
   description: "Meliza automation and operations agent.",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
+
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
     <html className={cn(sans.variable, mono.variable)} lang="en">
       <body>
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          {children}
+          <PwaInstall />
+        </TooltipProvider>
       </body>
     </html>
   );

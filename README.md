@@ -1,35 +1,35 @@
-# agentmeliza
+# Meliza
 
-This is an [eve](https://eve.dev) agent bootstrapped with [`eve init`](https://eve.dev/docs/reference/cli#eve-init).
+Meliza is an [eve](https://eve.dev) agent with a Next.js web app.
 
-## Getting started
+## Run locally
 
-First, run the development server:
-
-```bash
-eve dev
-```
-
-The development TUI opens an interactive session where you can send messages to your agent.
-
-Start by editing `agent/instructions.md` to define the agent's identity, purpose, tone, and response guidelines. Configure its model and runtime behavior in `agent/agent.ts`.
-
-Add capabilities under `agent/`, including tools, connections, channels, skills, subagents, and schedules. eve reloads your changes as you work.
-
-## Learn more
-
-To learn more about eve, explore these resources:
-
-- [eve documentation](https://eve.dev/docs) — learn about eve's features and authoring APIs.
-- [Build an Agent tutorial](https://eve.dev/docs/tutorial/first-agent) — build and deploy an agent step by step.
-- [eve on GitHub](https://github.com/vercel/eve) — view the source and contribute.
-
-## Deploy on Vercel
-
-Deploy your agent to [Vercel](https://vercel.com) from the project root:
+This project uses Node.js 24 and pnpm 12. Install dependencies and start the development server from the project root:
 
 ```bash
-eve deploy
+corepack enable
+pnpm install
+pnpm dev
 ```
 
-`eve deploy` links a Vercel project if needed and deploys the agent to production. See the [eve deployment documentation](https://eve.dev/docs/guides/deployment/vercel) for authentication, environment variables, and deployment options.
+Open the local URL printed by Next.js. The eve development TUI is also available with `eve dev` when working on the agent itself.
+
+Useful checks and commands:
+
+```bash
+pnpm typecheck
+pnpm build
+pnpm start
+```
+
+## Install Meliza
+
+Meliza can be installed from supported browsers when served over HTTPS (or from localhost during development). Open the app and select **Install Meliza**. If the browser does not expose a native installation prompt, use its browser menu and choose **Install app** or **Add to Home Screen**. On iPhone and iPad, open the site in Safari, tap **Share**, then **Add to Home Screen**.
+
+The web app manifest is served by Next.js at `/manifest.webmanifest`. The app uses the existing `/icon.svg` artwork and the generated Apple touch icon. No service worker or offline caching is enabled: installation does not make the AI features work offline, and private conversations are not cached by this PWA setup.
+
+## Configure and deploy
+
+Edit `agent/instructions.md` to define Meliza's identity and response guidelines, and `agent/agent.ts` for model and runtime configuration. Add capabilities under `agent/`.
+
+For deployment, follow the [eve deployment documentation](https://eve.dev/docs/guides/deployment/vercel). After deploying, visit the production site over HTTPS and test installation in a browser that supports PWAs.
