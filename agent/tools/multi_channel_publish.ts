@@ -7,7 +7,7 @@ type Channel = (typeof CHANNELS)[number];
 
 type Result = {
   channel: Channel;
-  status: "published" | "ready" | "not_configured" | "failed";
+  status: "published" | "ready" | "not_configured" | "failed" | "paused";
   liveUrl?: string;
   externalId?: string;
   reason?: string;
@@ -73,12 +73,13 @@ async function configured(channel: Channel): Promise<Result> {
 }
 
 export default defineTool({
-  description: "Multi-channel publishing engine for First Income Clarity. Uses only official API integrations and never browser automation. Supports Etsy, eBay, Amazon, Takealot, Shopify, WooCommerce, Lemon Squeezy, and Paddle. Never claims a live publication without platform evidence.",
+  description: "First Income Clarity distribution is paused by the owner. This tool never creates or publishes products while the pause is in effect.",
   inputSchema: z.object({ channel: z.enum(CHANNELS), title: z.string().min(10).max(120), description: z.string().min(20).max(2500), priceKes: z.number().int().positive() }),
-  async execute({ channel, title, description, priceKes }) {
-    if (channel === "paddle") return publishPaddle(title, description, priceKes);
-    if (channel === "lemonsqueezy") return publishLemonSqueezy(title);
-    if (channel === "shopify") return publishShopify(title, description, priceKes);
-    return configured(channel);
+  async execute({ channel }) {
+    return {
+      channel,
+      status: "paused",
+      reason: "First Income Clarity distribution is paused by the owner.",
+    };
   },
 });

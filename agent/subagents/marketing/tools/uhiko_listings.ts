@@ -1,10 +1,9 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { appBaseUrl } from "@/lib/app-url";
 import { validateListing } from "@/lib/agentiz/feed";
 import { detectPropertyType, fetchAllProperties, toListing } from "@/lib/agentiz/wordpress";
 import { toPosterData } from "@/lib/uhiko/poster-data";
-
-const BASE = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL || "agentmeliza.vercel.app"}`;
 
 /**
  * Same verified-facts source as the root agent's `uhiko_listings` tool, so
@@ -18,6 +17,7 @@ export default defineTool({
     limit: z.number().int().min(1).max(25).default(10).describe("How many listings to return, newest first."),
   }),
   async execute({ limit }) {
+    const base = appBaseUrl();
     const postType = await detectPropertyType();
     const posts = await fetchAllProperties(postType);
     const listings = posts
@@ -39,8 +39,8 @@ export default defineTool({
           size: p.sizeText ?? null,
           listingUrl: p.link,
           descriptionExcerpt: (listing.text.en || "").slice(0, 600),
-          posterA: `${BASE}/api/posters/uh-${p.id}-a.jpg`,
-          posterB: `${BASE}/api/posters/uh-${p.id}-b.jpg`,
+          posterA: `${base}/api/posters/uh-${p.id}-a.jpg`,
+          posterB: `${base}/api/posters/uh-${p.id}-b.jpg`,
           updated: post.modified_gmt,
         };
       })

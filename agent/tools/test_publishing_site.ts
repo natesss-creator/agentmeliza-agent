@@ -1,6 +1,6 @@
-import { put } from "@vercel/blob";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { putObject } from "@/lib/object-storage";
 import { getPublishingChannel, publishingChannelKeys } from "../publishing-registry";
 
 export default defineTool({
@@ -63,11 +63,11 @@ export default defineTool({
         finalStepReachable: Boolean(result.finalStepReachable),
         notes: typeof result.notes === "string" ? result.notes : "",
       };
-      await put(`publishing-tests/${Date.now()}-${site}.json`, JSON.stringify(record, null, 2), { access: "private", contentType: "application/json" });
+      await putObject(`publishing-tests/${Date.now()}-${site}.json`, JSON.stringify(record, null, 2), { contentType: "application/json" });
       return record;
     } catch (error) {
       const record = { timestamp, site: target.label, action: "test-publishing-workflow", status: "failed", blocker: error instanceof Error ? error.message : String(error) };
-      await put(`publishing-tests/${Date.now()}-${site}.json`, JSON.stringify(record, null, 2), { access: "private", contentType: "application/json" });
+      await putObject(`publishing-tests/${Date.now()}-${site}.json`, JSON.stringify(record, null, 2), { contentType: "application/json" });
       return record;
     }
   },

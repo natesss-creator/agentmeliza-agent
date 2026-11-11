@@ -2,7 +2,7 @@
  * Reads the owner's property listings from the uhiko.com WordPress REST API
  * and normalizes them into Agentiz listings.
  *
- * Config (Vercel env, set by the owner; never in source):
+ * Config (server environment, set by the owner; never in source):
  *   UHIKO_WP_URL           base site URL, e.g. https://uhiko.com/wp  (default)
  *   UHIKO_WP_USER          WordPress username that owns the Application Password
  *   UHIKO_WP_APP_PASSWORD  WordPress Application Password (Sensitive)

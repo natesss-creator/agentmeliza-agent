@@ -10,9 +10,30 @@ const PLATFORM_CONFIGS = {
   instagram: { label: "Instagram", env: "COMPOSIO_AUTH_CONFIG_INSTAGRAM" },
   youtube: { label: "YouTube", env: "COMPOSIO_AUTH_CONFIG_YOUTUBE" },
   tiktok: { label: "TikTok", env: "COMPOSIO_AUTH_CONFIG_TIKTOK" },
+  gmail: { label: "Gmail", env: "COMPOSIO_AUTH_CONFIG_GMAIL" },
 } as const;
 
 type Platform = keyof typeof PLATFORM_CONFIGS;
+
+const ALLOWED_REDIRECT_HOSTS = [
+  "composio.dev",
+  "facebook.com",
+  "instagram.com",
+  "youtube.com",
+  "google.com",
+  "accounts.google.com",
+  "tiktok.com",
+  "www.facebook.com",
+  "www.instagram.com",
+  "www.youtube.com",
+  "www.google.com",
+  "www.tiktok.com",
+] as const;
+
+function isAllowedRedirectHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return ALLOWED_REDIRECT_HOSTS.some((host) => normalized === host || normalized.endsWith(`.${host}`));
+}
 
 async function getUserId(request: Request): Promise<string | null> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -158,6 +179,9 @@ export async function POST(request: Request) {
     }
     if (parsedRedirect.protocol !== "https:") {
       return NextResponse.json({ error: "The connection service returned an unsafe authorization link." }, { status: 502 });
+    }
+    if (!isAllowedRedirectHost(parsedRedirect.hostname)) {
+      return NextResponse.json({ error: "The connection service returned an unsupported authorization host." }, { status: 502 });
     }
 
     return NextResponse.json({ redirectUrl: parsedRedirect.toString() });

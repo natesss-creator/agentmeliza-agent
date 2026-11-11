@@ -1,6 +1,6 @@
-import { put } from "@vercel/blob";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { putPublicObject } from "@/lib/object-storage";
 
 // The free video pipeline: a Ken-Burns pan/zoom over the listing's real
 // poster photo, a synced voiceover from Microsoft Edge TTS (free, no API
@@ -8,8 +8,8 @@ import { z } from "zod";
 // sentence timestamps. $0 marginal cost per clip, no GPU, no paid
 // AI-video API, no owner approval needed — see instructions.md "Current
 // status" for how this fits next to the still-unconnected Replicate/Seedance
-// path. Validated end-to-end in a real Vercel Sandbox before being wired in
-// here: 1080x1920 h264+aac output, correct duration, ~20-30s of active CPU.
+// path. The configured eve sandbox must provide the runtime dependencies:
+// 1080x1920 h264+aac output, correct duration, ~20-30s of active CPU.
 const RENDER_SCRIPT = `
 import asyncio, json, subprocess, sys, urllib.request
 import edge_tts
@@ -118,8 +118,7 @@ export default defineTool({
       throw new Error(`Rendered video is ${video.byteLength} bytes, over the ${MAX_BYTES}-byte sanity cap. Shorten the script.`);
     }
 
-    const blob = await put(`video-posts/uh-${listingId}-${Date.now()}.mp4`, Buffer.from(video), {
-      access: "public",
+    const blob = await putPublicObject(`video-posts/uh-${listingId}-${Date.now()}.mp4`, Buffer.from(video), {
       contentType: "video/mp4",
     });
 

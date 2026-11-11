@@ -11,10 +11,10 @@ export default defineSchedule({
   // directory-site publishing via publish_listing, not social media — that
   // one is untouched by this pause unless told otherwise.) Offset from
   // daily-report.ts (06:00 UTC) and daily-publishing.ts (05:00 UTC) so
-  // nothing runs back to back; Vercel's Hobby plan caps each cron job at
-  // once per day.
+  // nothing runs back to back; keep this cadence explicit for self-hosted
+  // schedule runners as well as managed hosts.
   cron: "0 7 * * *",
-  markdown: [
+  content: [
     "You are the one daily trigger for social post publication. First Income Clarity publishing is paused by owner instruction (2026-10-25) — do not publish any First Income Clarity content here; Uhiko Properties is the sole active priority across every channel. Re-check your instructions in case this has since changed before assuming it's still paused.",
 
     "Uhiko Properties: follow 'Uhiko Property Posts' and 'Uhiko New-Listing Cross-Posting' in full. Call `uhiko_listings` with limit 25, excluding ids already posted in the last 14 days (check the publishing log and each platform's recent posts) — it already excludes listings with no real photo. Post every eligible listing it returns, not just one, to every currently authorized autonomous destination (Facebook Page, Instagram @innocentlabs4, TikTok @pesazako) — looping through listings per platform until that platform's daily pacing cap is reached, then moving on to the next platform. If nothing eligible is found, do nothing and end quietly.",

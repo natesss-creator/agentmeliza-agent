@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { LogOutIcon, UserRoundPlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -11,8 +13,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { SocialConnectionsDialog } from "@/app/settings/connections/social-connections";
+import { FeatureCards } from "./feature-guide";
 
-const AGENT_NAME = "agentmeliza";
+const AGENT_NAME = "Meliza";
 
 export function SignIn() {
   const [pending, setPending] = useState(false);
@@ -22,7 +25,7 @@ export function SignIn() {
     setPending(true);
     setError(undefined);
     try {
-      const result = await authClient.signIn.social({ callbackURL: "/", provider: "vercel" });
+      const result = await authClient.signIn.social({ callbackURL: "/", provider: "google" });
       if (!result.error) return;
       setPending(false);
       setError("Sign-in failed. Try again.");
@@ -33,21 +36,40 @@ export function SignIn() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-8 text-foreground">
-      <div className="flex w-full max-w-[22rem] flex-col gap-5">
-        <div className="text-foreground opacity-[0.08] dark:opacity-[0.12]"><EveWordmark className="h-auto w-[4.875rem]" /></div>
-        <section aria-label="Sign in" className="flex flex-col gap-2">
-          <h1 className="max-w-full break-words font-medium text-sm leading-6">{AGENT_NAME}</h1>
-          <p className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm leading-6">
-            <span className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><span aria-hidden="true" className="size-1.5 rounded-full bg-current" />Ready</span>
-            <span aria-hidden="true" className="text-border">/</span>
-            <span>Sign in to start a session</span>
+    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-8 text-foreground sm:px-8">
+      <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-center">
+        <div className="flex w-full flex-col gap-5 lg:sticky lg:top-8">
+          <div className="text-foreground opacity-[0.08] dark:opacity-[0.12]"><EveWordmark className="h-auto w-[4.875rem]" /></div>
+          <section aria-label="Sign in" className="flex flex-col gap-2">
+            <h1 className="max-w-full break-words font-medium text-sm leading-6">{AGENT_NAME}</h1>
+            <p className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm leading-6">
+              <span className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><span aria-hidden="true" className="size-1.5 rounded-full bg-current" />Ready</span>
+              <span aria-hidden="true" className="text-border">/</span>
+              <span>Sign in to start a session</span>
+            </p>
+            <Button className="mt-3 w-full gap-2 text-sm" disabled={pending} onClick={signIn}>
+              <svg aria-hidden="true" className="size-4" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.2C12.43 13.2 17.74 9.5 24 9.5Z" />
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.93c-.58 2.96-2.26 5.47-4.76 7.16l7.73 6C44.4 38.05 46.98 31.9 46.98 24.55Z" />
+                <path fill="#FBBC05" d="M10.53 28.58A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.75-4.58l-7.98-6.2A23.9 23.9 0 0 0 0 24c0 3.9.93 7.6 2.57 10.78l7.96-6.2Z" />
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.82l-7.73-6c-2.15 1.45-4.9 2.32-8.17 2.32-6.26 0-11.57-3.7-13.47-8.93l-7.98 6.2C6.51 43.62 14.62 48 24 48Z" />
+              </svg>
+              <span className="leading-5">{pending ? "Redirecting…" : "Continue with Google"}</span>
+            </Button>
+            {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
+          </section>
+          <p className="text-sm text-muted-foreground">
+            After signing in, choose a feature or describe what you need in chat. You can connect social accounts from Meliza’s settings.
           </p>
-          <Button className="mt-3 w-full gap-2 text-sm" disabled={pending} onClick={signIn}>
-            <svg aria-hidden="true" className="size-3 fill-current" viewBox="0 0 24 20"><path d="M12 0 24 20H0L12 0Z" /></svg>
-            <span className="leading-5">{pending ? "Redirecting…" : "Continue with Vercel"}</span>
-          </Button>
-          {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
+        </div>
+        <section aria-labelledby="signin-features-title" className="min-w-0">
+          <h2 className="mb-1 text-xl font-semibold tracking-tight" id="signin-features-title">What Meliza can help with</h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Feature examples are starting points, not automatic actions. Publishing depends on authorization, connected accounts, and safety checks.
+          </p>
+          <div className="max-h-[60dvh] overflow-y-auto pr-1">
+            <FeatureCards />
+          </div>
         </section>
       </div>
     </main>

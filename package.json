@@ -2,10 +2,19 @@
   "name": "agentmeliza",
   "version": "0.0.0",
   "type": "module",
-  "imports": {"#*": "./agent/*", "#evals/*": "./evals/*"},
-  "scripts": {"build": "next build", "dev": "next dev", "start": "next start", "typecheck": "tsc --noEmit -p tsconfig.json"},
+  "imports": {
+    "#*": "./agent/*",
+    "#evals/*": "./evals/*"
+  },
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@ai-sdk/google": "4.0.99",
+    "@aws-sdk/client-s3": "^3.1166.0",
     "@radix-ui/react-use-controllable-state": "1.2.2",
     "@shikijs/core": "3.23.0",
     "@shikijs/engine-javascript": "3.23.0",
@@ -15,13 +24,12 @@
     "@streamdown/math": "1.0.2",
     "@streamdown/mermaid": "1.0.2",
     "@tailwindcss/postcss": "4.3.0",
-    "@vercel/blob": "2.4.0",
-    "@vercel/connect": "0.4.2",
     "ai": "7.0.112",
     "better-auth": "1.6.26",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
+    "eve": "1.0.0-rc.5",
     "lucide-react": "1.16.0",
     "motion": "12.40.0",
     "nanoid": "5.1.11",
@@ -37,7 +45,14 @@
     "use-stick-to-bottom": "1.1.4",
     "zod": "4.4.3"
   },
-  "devDependencies": {"@types/node": "24.13.2", "@types/react": "19.2.15", "@types/react-dom": "19.2.3", "typescript": "6.0.3"},
-  "engines": {"node": "24.x"},
+  "devDependencies": {
+    "@types/node": "24.13.2",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "typescript": "6.0.3"
+  },
+  "engines": {
+    "node": "24.x"
+  },
   "packageManager": "pnpm@12.3.4"
 }

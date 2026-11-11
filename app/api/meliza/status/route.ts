@@ -127,7 +127,7 @@ export async function GET(request: Request) {
       status: composioConfigured ? "configured" : "not_configured",
     },
     agentizFeed: "/api/agentiz/feed",
-    deployment: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+    deployment: process.env.APP_VERSION ?? null,
     ...(verify
       ? {
           checks: {

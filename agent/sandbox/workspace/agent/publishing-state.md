@@ -80,17 +80,14 @@ Allowed statuses: `published`, `attempted`, `skipped`, `failed`, `blocked-human-
 After a run, report totals and each destination's verified result. Never invent a URL or claim publication without independent verification.
 
 ## Deployment/runtime notes
-- Vercel project: `agentmeliza`
-- Project ID: `prj_9D5lRFGJMeWNsntrnE5MVBX1itgA`
-- Team ID: `team_d3rsfV62HAV7OgLaYfN2J0Y8`
-- Production alias: `agentmeliza.vercel.app`
+- Public app URL: set `APP_URL` to the canonical HTTPS origin for the deployment.
 - Framework: Next.js
 - Node: 24.x
 - EVE: 0.66.0
 - AI SDK: 7.0.112
 - Current model configuration: `@ai-sdk/google` -> `gemini-3.5-flash-lite`
-- Meliza should use direct provider configuration rather than requiring Vercel AI Gateway/card verification.
-- EVE file memory requires Vercel Blob when `fileMemory()` is used; the deployment must provide the required `EVE_MEMORY_BLOB_STORE_ID` or use an explicitly configured alternative backend.
+- Meliza uses direct provider configuration rather than a managed AI gateway.
+- App-managed objects use the configured S3-compatible store. Public media URLs use `S3_PUBLIC_BASE_URL`; other app objects must remain private.
 
 ## Operational principle
 Prefer real, authorized, verifiable automation. Adapt content per platform, respect platform/category rules and rate limits, avoid spam and deceptive claims, and stop for human-only verification rather than attempting to bypass it.

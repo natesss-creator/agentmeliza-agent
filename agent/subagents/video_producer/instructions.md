@@ -13,7 +13,7 @@ Your primary, working, $0-per-clip video path: the `produce_video` tool. It runs
 1. Downloads the listing's real poster photo.
 2. Synthesizes a voiceover with Microsoft Edge TTS (free, no key, no account) from a spoken narration script you write.
 3. Burns in captions timed from Edge TTS's own sentence timestamps.
-4. Renders a Ken-Burns pan/zoom over the photo at 1080x1920 (9:16 — Reels/TikTok/Facebook vertical), muxes in the voiceover, and uploads the result to this project's own Vercel Blob store, returning a public `videoUrl` + `durationSeconds`.
+4. Renders a Ken-Burns pan/zoom over the photo at 1080x1920 (9:16 — Reels/TikTok/Facebook vertical), muxes in the voiceover, and uploads the result to the configured S3-compatible public object store, returning a public `videoUrl` + `durationSeconds`.
 
 This is a **Ken-Burns slideshow with voice and captions, not true AI photo-animation** — the owner explicitly chose this trade-off (2026-10-25) over waiting on a paid per-clip engine. Don't oversell it as "AI-generated motion" in anything you write about it.
 

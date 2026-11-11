@@ -23,9 +23,9 @@ This file is the durable, non-secret operating record for Meliza's currently ver
 ## Video production (2026-10-25)
 
 - New `video_producer` subagent, the one subagent with its own direct Composio publish access (scoped to the same Facebook/Instagram/TikTok accounts) — it runs its whole generate → caption → QA → publish → verify pipeline itself.
-- **Live free pipeline (owner's choice, 2026-10-25, after evaluating Replicate/Seedance, RunPod self-host, and MoneyPrinterTurbo):** `video_producer`'s `produce_video` tool renders a Ken-Burns pan/zoom over the listing's real poster photo with a free Microsoft Edge TTS voiceover and burned-in captions (timed from Edge TTS's own sentence timestamps), muxes them with ffmpeg, and uploads the 1080x1920 (9:16) mp4 to this project's Vercel Blob store for a public URL. $0 marginal cost per clip, no GPU, no owner approval — unlike every paid option considered, nothing here is gated.
-  - Runs in its own eve sandbox (`agent/subagents/video_producer/sandbox.ts`, a snapshot-backed Vercel Sandbox with ffmpeg + edge-tts baked in at prepare time) with a tight network allow-list: only this project's own domain (the poster photo) and `speech.platform.bing.com` (Edge TTS) — nothing else is reachable from it.
-  - Validated end-to-end in a real Vercel Sandbox before being wired in: ~20-30s of active CPU per clip, trivially inside the Hobby plan's free 5 Active-CPU-hours/420 GB-hours-per-month Sandbox quota even at this agent's daily posting caps.
+- **Live free pipeline (owner's choice, 2026-10-25, after evaluating Replicate/Seedance, RunPod self-host, and MoneyPrinterTurbo):** `video_producer`'s `produce_video` tool renders a Ken-Burns pan/zoom over the listing's real poster photo with a free Microsoft Edge TTS voiceover and burned-in captions (timed from Edge TTS's own sentence timestamps), muxes them with ffmpeg, and uploads the 1080x1920 (9:16) mp4 to the configured S3-compatible object store for a public URL. $0 marginal cost per clip, no GPU, no owner approval — unlike every paid option considered, nothing here is gated.
+  - Runs in the configured eve sandbox with ffmpeg + edge-tts available and a restricted network allow-list: only the app's public origin (the poster photo) and `speech.platform.bing.com` (Edge TTS) should be reachable.
+  - The video tool must be validated in the selected self-hosted sandbox before enabling scheduled use; do not assume a managed sandbox or hosting quota.
   - It's a slideshow-with-voice, not true AI photo-animation — the owner explicitly traded that off for zero cost and zero approval friction.
 - **Not pursued:** Replicate/Seedance (image-to-video, ~$0.04-0.15/sec, needs the owner's own Replicate account — connection was initiated but never confirmed active) and a from-scratch RunPod/Wan2.1 self-host (cheaper than Replicate per clip but a real multi-step build) were both evaluated and set aside in favor of the free path above. `lib/composio-approval.ts` still gates `REPLICATE_MODELS_PREDICTIONS_CREATE`/`GEMINI_GENERATE_VIDEOS`/`MINIMAX_CREATE_*` per-clip, in case the owner asks for true AI motion on a specific post later — none of that is the default.
 
@@ -123,17 +123,14 @@ After a run, report totals and each destination's verified result. Never invent 
 
 ## Deployment/runtime notes
 
-- Vercel project: `agentmeliza`
-- Project ID: `prj_9D5lRFGJMeWNsntrnE5MVBX1itgA`
-- Team ID: `team_d3rsfV62HAV7OgLaYfN2J0Y8`
-- Production alias: `agentmeliza.vercel.app`
+- Deployment: portable Node/Docker; `APP_URL` is the canonical HTTPS origin.
 - Framework: Next.js
 - Node: 24.x
 - EVE: 0.66.0
 - AI SDK: 7.0.112
 - Current model configuration: `@ai-sdk/google` -> `gemini-3.5-flash-lite`
-- Meliza should use direct provider configuration rather than requiring Vercel AI Gateway/card verification.
-- EVE file memory requires Vercel Blob when `fileMemory()` is used; the deployment must provide the required `EVE_MEMORY_BLOB_STORE_ID` or use an explicitly configured alternative backend.
+- Meliza uses direct provider configuration rather than a managed AI gateway.
+- App-managed object storage uses the configured S3-compatible bucket; public URLs must resolve through `S3_PUBLIC_BASE_URL`.
 
 ## Operational principle
 

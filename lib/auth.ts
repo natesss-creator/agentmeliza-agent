@@ -7,15 +7,32 @@ function getAllowedHosts(): string[] {
   if (process.env.NODE_ENV === "development") {
     return DEVELOPMENT_ALLOWED_HOSTS;
   }
-  const deploymentHosts = [
-    process.env.VERCEL_URL,
-    process.env.VERCEL_BRANCH_URL,
-    process.env.VERCEL_PROJECT_PRODUCTION_URL,
-  ].filter((host): host is string => Boolean(host));
-  if (deploymentHosts.length === 0) {
-    throw new Error("No trusted deployment hosts are configured");
+  const appUrl = process.env.APP_URL;
+  if (!appUrl) {
+    throw new Error("APP_URL must be configured with the public URL of this deployment.");
   }
-  return Array.from(new Set(deploymentHosts));
+  let hostname: string;
+  try {
+    const url = new URL(appUrl);
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.pathname !== "/" ||
+      url.search ||
+      url.hash
+    ) {
+      throw new Error();
+    }
+    hostname = url.host;
+  } catch {
+    throw new Error("APP_URL must be an HTTPS origin without a path, query, or fragment.");
+  }
+  const extraHosts = (process.env.APP_ALLOWED_HOSTS ?? "")
+    .split(",")
+    .map((host) => host.trim())
+    .filter(Boolean);
+  return Array.from(new Set([hostname, ...extraHosts]));
 }
 
 function requireEnvironmentVariable(name: string): string {
@@ -42,9 +59,9 @@ export const auth = betterAuth({
     },
   },
   socialProviders: {
-    vercel: {
-      clientId: requireEnvironmentVariable("VERCEL_APP_CLIENT_ID"),
-      clientSecret: requireEnvironmentVariable("VERCEL_APP_CLIENT_SECRET"),
+    google: {
+      clientId: requireEnvironmentVariable("GOOGLE_OAUTH_CLIENT_ID"),
+      clientSecret: requireEnvironmentVariable("GOOGLE_OAUTH_CLIENT_SECRET"),
     },
   },
 });

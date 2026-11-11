@@ -1,5 +1,6 @@
-import { get, put } from "@vercel/blob";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { appBaseUrl } from "@/lib/app-url";
+import { getObject, putObject } from "@/lib/object-storage";
 
 const TOKEN_PATH = "integrations/youtube/credentials.json";
 // Channel lookup uses channels.list?mine=true, which requires read access in addition to upload.
@@ -15,7 +16,7 @@ function required(name: string): string {
 }
 
 function redirectUri(): string {
-  return process.env.YOUTUBE_REDIRECT_URI || "https://agentmeliza.vercel.app/api/youtube/callback";
+  return process.env.YOUTUBE_REDIRECT_URI || `${appBaseUrl()}/api/youtube/callback`;
 }
 
 function encryptionKey(): Buffer {
@@ -109,15 +110,14 @@ export async function saveYoutubeCredentials(input: {
     channelUrl: input.channelUrl,
     connectedAt: new Date().toISOString(),
   };
-  await put(TOKEN_PATH, JSON.stringify(payload), { access: "private", allowOverwrite: true });
+  await putObject(TOKEN_PATH, JSON.stringify(payload), { contentType: "application/json" });
 }
 
 export async function loadYoutubeCredentials() {
   try {
-    const result = await get(TOKEN_PATH, { access: "private", useCache: false });
+    const result = await getObject(TOKEN_PATH);
     if (!result) return null;
-    const text = await new Response(result.stream).text();
-    const payload = JSON.parse(text) as { refreshToken: string; channelId: string; channelTitle: string; channelUrl: string; connectedAt: string };
+    const payload = JSON.parse(result.toString("utf8")) as { refreshToken: string; channelId: string; channelTitle: string; channelUrl: string; connectedAt: string };
     return { ...payload, refreshToken: decrypt(payload.refreshToken) };
   } catch {
     return null;

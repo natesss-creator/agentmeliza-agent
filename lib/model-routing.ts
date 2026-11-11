@@ -8,7 +8,7 @@ export type ModelTier = "main" | "fast";
  */
 export function melizaModel(_tier: ModelTier = "main") {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    throw new Error("No model API key configured. Set GOOGLE_GENERATIVE_AI_API_KEY in Vercel.");
+    throw new Error("No model API key configured. Set GOOGLE_GENERATIVE_AI_API_KEY in the application environment.");
   }
 
   return google("gemini-3.5-flash-lite");
