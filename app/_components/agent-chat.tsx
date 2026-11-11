@@ -41,32 +41,15 @@ type ChatMessage = {
 export function AgentChat({
   sessionId,
   sessionless = false,
-  publicMode = false,
   userId,
 }: {
   readonly sessionId?: string;
   readonly sessionless?: boolean;
-  readonly publicMode?: boolean;
   readonly userId?: string;
 }) {
-  const anonymousUserId = useMemo(() => {
-    if (userId) return userId;
-    if (!publicMode) return undefined;
-    const key = "meliza-public-user-id";
-    try {
-      const current = window.localStorage.getItem(key);
-      if (current && /^anon-[A-Za-z0-9_-]+$/.test(current)) return current;
-      const next = `anon-${crypto.randomUUID()}`;
-      window.localStorage.setItem(key, next);
-      return next;
-    } catch {
-      return `anon-${crypto.randomUUID()}`;
-    }
-  }, [publicMode, userId]);
-  const effectiveUserId = userId ?? anonymousUserId;
   const storageKey = useMemo(
-    () => `meliza-chat:${effectiveUserId ? `${effectiveUserId}:` : ""}${sessionId ?? "new"}`,
-    [effectiveUserId, sessionId],
+    () => `meliza-chat:${userId ? `${userId}:` : ""}${sessionId ?? "new"}`,
+    [userId, sessionId],
   );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -129,7 +112,6 @@ export function AgentChat({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           messages: nextMessages,
-          ...(effectiveUserId ? { userId: effectiveUserId } : {}),
         }),
       });
 
@@ -227,16 +209,14 @@ export function AgentChat({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          {!publicMode ? (
-            <Link
-              className="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition-colors hover:bg-accent sm:text-sm"
-              href="/settings/connections"
-            >
-              <Settings2Icon aria-hidden="true" className="size-4" />
-              <span className="hidden sm:inline">Connect accounts</span>
-              <span className="sm:hidden">Connect</span>
-            </Link>
-          ) : null}
+          <Link
+            className="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition-colors hover:bg-accent sm:text-sm"
+            href="/settings/connections"
+          >
+            <Settings2Icon aria-hidden="true" className="size-4" />
+            <span className="hidden sm:inline">Connect accounts</span>
+            <span className="sm:hidden">Connect</span>
+          </Link>
           <Button
             aria-label="Guide and features"
             aria-haspopup="dialog"
@@ -268,15 +248,13 @@ export function AgentChat({
                 <div className="max-w-2xl">
                   <div className="mb-5 inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                     <LockKeyholeIcon aria-hidden="true" className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                    {publicMode ? "Private drafts and research" : "Your work, thoughtfully handled"}
+                    Your work, thoughtfully handled
                   </div>
                   <h1 className="max-w-xl text-3xl font-semibold tracking-tight sm:text-5xl">
-                    {publicMode ? "A clear next step starts here." : "Let’s make your next move count."}
+                    Let’s make your next move count.
                   </h1>
                   <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                  {publicMode
-                    ? "Explore ideas, plan a campaign, or shape a private draft. Choose a starting point below and make it your own."
-                    : "Bring a marketing question, a property to promote, or a draft to improve. Meliza helps you research, plan, and prepare—with you in control of every action."}
+                    Bring a marketing question, a product or service to promote, or a draft to improve. Meliza helps you research, plan, and prepare—with you in control of every action.
                   </p>
                   <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
@@ -373,33 +351,29 @@ export function AgentChat({
         ) : null}
         {uploadError ? <p className="mx-auto mb-2 max-w-3xl text-sm text-destructive" role="alert">{uploadError}</p> : null}
         <form className="mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border bg-card p-2 shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-ring/40" onSubmit={handleSubmit}>
-          {!publicMode ? (
-            <>
-              <input
-                accept={USER_MEDIA_TYPES.join(",")}
-                className="sr-only"
-                disabled={busy || uploading}
-                onChange={(event) => {
-                  const file = event.currentTarget.files?.[0];
-                  if (file) void uploadMedia(file);
-                  event.currentTarget.value = "";
-                }}
-                ref={mediaInputRef}
-                type="file"
-              />
-              <Button
-                aria-label="Attach media"
-                className="shrink-0 rounded-xl"
-                disabled={busy || uploading || attachments.length >= 4}
-                onClick={() => mediaInputRef.current?.click()}
-                size="icon"
-                type="button"
-                variant="outline"
-              >
-                <FilePlus2Icon aria-hidden="true" className={uploading ? "size-4 animate-pulse" : "size-4"} />
-              </Button>
-            </>
-          ) : null}
+          <input
+            accept={USER_MEDIA_TYPES.join(",")}
+            className="sr-only"
+            disabled={busy || uploading}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              if (file) void uploadMedia(file);
+              event.currentTarget.value = "";
+            }}
+            ref={mediaInputRef}
+            type="file"
+          />
+          <Button
+            aria-label="Attach media"
+            className="shrink-0 rounded-xl"
+            disabled={busy || uploading || attachments.length >= 4}
+            onClick={() => mediaInputRef.current?.click()}
+            size="icon"
+            type="button"
+            variant="outline"
+          >
+            <FilePlus2Icon aria-hidden="true" className={uploading ? "size-4 animate-pulse" : "size-4"} />
+          </Button>
           <textarea
             aria-label="Message Meliza"
             className="max-h-40 min-h-11 flex-1 resize-y rounded-xl bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-0"
@@ -411,7 +385,7 @@ export function AgentChat({
                 event.currentTarget.form?.requestSubmit();
               }
             }}
-            placeholder={publicMode ? "Ask a question or describe a draft…" : "Message Meliza about your next campaign…"}
+            placeholder="Message Meliza about your next campaign…"
             ref={composerRef}
             value={input}
           />
@@ -426,9 +400,7 @@ export function AgentChat({
           </Button>
         </form>
         <p className="mx-auto mt-2 max-w-4xl px-1 text-[11px] leading-5 text-muted-foreground">
-          {publicMode
-            ? "Public access is limited to answers and private drafts. Sign in to connect social accounts or use publishing tools."
-            : "Uploaded media is stored at a public URL for social platforms. Only upload content you’re authorized to share. Images are sent to Meliza for review; videos are attached as publishable links."}
+          Uploaded media is stored at a public URL for social platforms. Only upload content you’re authorized to share. Images are sent to Meliza for review; videos are attached as publishable links.
         </p>
       </div>
       <Dialog onOpenChange={setShowGuide} open={showGuide}>

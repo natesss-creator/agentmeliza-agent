@@ -176,7 +176,7 @@ function SocialConnectionsPanel() {
     <div className="pt-1">
       <header className="mb-6 pr-8">
         <h1 className="text-2xl font-semibold tracking-tight">Social accounts</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Connect an account without leaving Meliza. Authorization opens in a separate secure window, so this conversation stays open.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Google sign-in identifies your Meliza account; it does not connect your social accounts. Choose the platforms you want to authorize. Each opens in a separate secure window, so this conversation stays open.</p>
         <p className="mt-2 text-xs text-muted-foreground">Meliza never asks for or stores your social password or API secret. Sign in directly with the social platform in the authorization window.</p>
       </header>
 

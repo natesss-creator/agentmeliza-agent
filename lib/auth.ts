@@ -1,7 +1,8 @@
 import { betterAuth } from "better-auth";
+import { Pool } from "pg";
 
 const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
-const DEVELOPMENT_ALLOWED_HOSTS = ["localhost:*", "127.0.0.1:*"];
+const DEVELOPMENT_ALLOWED_HOSTS = ["localhost:*", "127.0.0.1:*", "*.app.github.dev"];
 
 function getAllowedHosts(): string[] {
   if (process.env.NODE_ENV === "development") {
@@ -42,7 +43,23 @@ function requireEnvironmentVariable(name: string): string {
   throw new Error(`Missing required environment variable: ${name}`);
 }
 
+function getDatabasePool(): Pool | undefined {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString && process.env.NODE_ENV !== "development") {
+    throw new Error("DATABASE_URL must be configured with a persistent PostgreSQL database.");
+  }
+  if (!connectionString) return undefined;
+
+  return new Pool({
+    connectionString,
+    max: 5,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
+  });
+}
+
 export const auth = betterAuth({
+  database: getDatabasePool(),
   baseURL: {
     allowedHosts: getAllowedHosts(),
     protocol: process.env.NODE_ENV === "development" ? "auto" : "https",

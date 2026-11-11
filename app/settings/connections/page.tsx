@@ -6,10 +6,8 @@ import { SocialConnections } from "./social-connections";
 export const dynamic = "force-dynamic";
 
 export default async function ConnectionsPage() {
-  if (process.env.NODE_ENV === "development") return <SocialConnections />;
-
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return <SignIn />;
+  if (!session) return <SignIn callbackURL="/settings/connections" />;
 
   return <SocialConnections />;
 }

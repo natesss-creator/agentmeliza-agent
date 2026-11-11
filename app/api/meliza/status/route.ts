@@ -126,7 +126,6 @@ export async function GET(request: Request) {
       provider: "Composio",
       status: composioConfigured ? "configured" : "not_configured",
     },
-    agentizFeed: "/api/agentiz/feed",
     deployment: process.env.APP_VERSION ?? null,
     ...(verify
       ? {

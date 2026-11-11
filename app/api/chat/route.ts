@@ -16,9 +16,7 @@ Support platform-specific organic social posts and native scheduling only when t
 
 When asked to review social interactions, use available read tools to identify likely customer interest and draft a response. Do not send replies or DMs; approved auto-reply rules and templates are not configured. Potential-customer email alerts are not yet dispatched, so never claim that a lead alert or daily email was sent.
 
-Paid advertising: you may draft campaign copy, creative suggestions, and plans only. Never create, activate, boost, schedule, or spend on a paid ad campaign. No advertising budget has been authorized.
-
-First Income Clarity: publishing and promotion are paused. Never publish, distribute, or schedule First Income Clarity content on any channel. You may answer questions or prepare private drafts only when the user explicitly asks.`;
+Paid advertising: you may draft campaign copy, creative suggestions, and plans only. Never create, activate, boost, schedule, or spend on a paid ad campaign. No advertising budget has been authorized.`;
 
 type IncomingMessage = {
   role: "user" | "assistant";
@@ -26,32 +24,17 @@ type IncomingMessage = {
   media?: unknown[];
 };
 
-function normalizeAnonymousUserId(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!/^anon-[A-Za-z0-9_-]+$/.test(trimmed) || trimmed.length > 128) return null;
-  return trimmed;
-}
-
 export async function POST(request: Request) {
-  const session = process.env.NODE_ENV === "development"
-    ? await auth.api.getSession({ headers: request.headers }).catch(() => null)
-    : await auth.api.getSession({ headers: request.headers });
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) return new Response("Sign in with Google before using chat.", { status: 401 });
 
-  let body: { messages?: unknown; userId?: unknown };
+  let body: { messages?: unknown };
   try {
-    body = (await request.json()) as { messages?: unknown };
+    body = await request.json() as { messages?: unknown };
   } catch {
     return new Response("Invalid JSON payload", { status: 400 });
   }
-  const userId =
-    session?.user.id ??
-    normalizeAnonymousUserId(body.userId) ??
-    (process.env.NODE_ENV === "development" ? "meliza-development-user" : null);
-
-  if (!userId) {
-    return new Response("Anonymous chat sessions require a valid user identifier.", { status: 400 });
-  }
+  const userId = session.user.id;
 
   if (!Array.isArray(body.messages) || body.messages.length > 100) {
     return new Response("Invalid messages payload", { status: 400 });
@@ -112,13 +95,11 @@ export async function POST(request: Request) {
   let social: Awaited<ReturnType<typeof createSocialSessionTools>>;
   let packageInstructions: string;
   try {
-    const assignment = session ? await getUserPackageAssignment(userId) : null;
+    const assignment = await getUserPackageAssignment(userId);
     social = await createSocialSessionTools(userId, assignment?.packageId ?? null);
-    packageInstructions = !session
-      ? "This is a public anonymous session. Provide answers and private drafts only. No social accounts, publishing tools, or media uploads are available. Never imply that an external action occurred or that account-specific information is accessible."
-      : assignment
-        ? "The user is assigned the Starter package: at most 20 social posts per UTC publishing day across connected supported accounts. Replies and DMs may be drafted, but never sent automatically. Paid campaigns are disabled."
-        : "The user has no seller-assigned package. Do not claim access to social publishing or engagement tools; offer private drafts only.";
+    packageInstructions = assignment
+      ? "The user is assigned the Starter package: at most 20 social posts per UTC publishing day across their connected supported accounts. Replies and DMs may be drafted, but never sent automatically. Paid campaigns are disabled."
+      : "The user has no seller-assigned package. Do not claim access to social publishing or engagement tools; offer private drafts only.";
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not initialize social integrations.";
     return new Response(message, { status: 502 });

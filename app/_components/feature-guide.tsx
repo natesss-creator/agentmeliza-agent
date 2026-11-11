@@ -24,21 +24,21 @@ type Feature = {
 
 const FEATURES: Feature[] = [
   {
-    title: "First Income Clarity",
-    description: "Get product information, campaign research, or draft reviews. Publishing is currently paused.",
-    prompt: "Research campaign ideas and draft copy for First Income Clarity for review only. Do not publish; its promotion is currently paused.",
+    title: "Product & service marketing",
+    description: "Research your offer, explore campaign ideas, and review marketing drafts.",
+    prompt: "Research campaign ideas and draft platform-appropriate copy for my product or service: [describe it].",
     icon: BookOpenIcon,
   },
   {
-    title: "Uhiko property marketing",
-    description: "Check verified property details and prepare accurate listing copy.",
-    prompt: "Find the verified Uhiko property listings and draft a clear post for an eligible listing.",
+    title: "Property marketing",
+    description: "Prepare accurate property listings and promotional copy from details you provide.",
+    prompt: "Use the property details I provide to draft a clear, accurate listing and social post: [property details].",
     icon: Building2Icon,
   },
   {
     title: "Social content & publishing",
     description: "Provide approved media, create platform-specific organic posts, and publish or schedule them on connected accounts.",
-    prompt: "Create platform-specific organic posts for Uhiko Properties using my attached media. Use only my connected accounts, follow each platform's rules and posting limits, and schedule for the time I specify: [date, time, and time zone].",
+    prompt: "Create platform-specific organic posts for my brand using my attached media. Use only my connected accounts, follow each platform's rules and posting limits, and schedule for the time I specify: [date, time, and time zone].",
     icon: Share2Icon,
   },
   {
@@ -56,13 +56,13 @@ const FEATURES: Feature[] = [
   {
     title: "Marketing research & copy",
     description: "Explore campaign angles and write audience-appropriate copy.",
-    prompt: "Research campaign angles and draft platform-native marketing copy for Uhiko Properties.",
+    prompt: "Research campaign angles and draft platform-native marketing copy for my business: [describe the business and audience].",
     icon: MegaphoneIcon,
   },
   {
-    title: "Short-form property videos",
-    description: "Create a listing video with narration and captions, then follow the approved review and publishing workflow.",
-    prompt: "Prepare a short video for an eligible Uhiko property listing. Verify the listing, follow the QA steps, and check authorization before publishing.",
+    title: "Short-form videos",
+    description: "Prepare a short promotional video with narration and captions for your review.",
+    prompt: "Prepare a short promotional video for my product, service, or listing using these details: [details].",
     icon: VideoIcon,
   },
   {
@@ -73,8 +73,8 @@ const FEATURES: Feature[] = [
   },
   {
     title: "SEO & search visibility",
-    description: "Get technical and content SEO recommendations for Uhiko and First Income Clarity.",
-    prompt: "Audit technical and content SEO opportunities for uhiko.com and groketer.com/firstincome.",
+    description: "Get technical and content SEO recommendations for your website.",
+    prompt: "Audit technical and content SEO opportunities for my website: [URL].",
     icon: SearchCheckIcon,
   },
   {
@@ -107,7 +107,7 @@ export function AccessGuide() {
         <li><span className="font-medium text-foreground">3. Review and send.</span> Check the prompt and Meliza’s response before approving any next step.</li>
       </ol>
       <p className="mt-3 text-sm text-muted-foreground">
-        Social workflows need an authorized connection and remain subject to platform rules and Meliza’s safety checks. First Income Clarity publishing is currently paused.
+        Google sign-in identifies your Meliza account. Connect each social platform separately to authorize posting; Meliza only uses accounts connected to your account.
       </p>
       <Link
         className="mt-3 inline-flex items-center gap-1 text-sm font-medium underline underline-offset-4"

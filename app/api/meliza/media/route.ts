@@ -17,8 +17,7 @@ const MIME_EXTENSION: Record<string, string> = {
 
 async function getUserId(request: Request): Promise<string | null> {
   const session = await auth.api.getSession({ headers: request.headers });
-  if (session?.user.id) return session.user.id;
-  return process.env.NODE_ENV === "development" ? "meliza-development-user" : null;
+  return session?.user.id ?? null;
 }
 
 export async function POST(request: Request) {

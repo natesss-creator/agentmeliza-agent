@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { LogOutIcon, UserRoundPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ import { FeatureCards } from "./feature-guide";
 
 const AGENT_NAME = "Meliza";
 
-export function SignIn() {
+export function SignIn({ callbackURL = "/" }: { readonly callbackURL?: string } = {}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -25,7 +24,7 @@ export function SignIn() {
     setPending(true);
     setError(undefined);
     try {
-      const result = await authClient.signIn.social({ callbackURL: "/", provider: "google" });
+      const result = await authClient.signIn.social({ callbackURL, provider: "google" });
       if (!result.error) return;
       setPending(false);
       setError("Sign-in failed. Try again.");
@@ -59,7 +58,7 @@ export function SignIn() {
             {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
           </section>
           <p className="text-sm text-muted-foreground">
-            After signing in, choose a feature or describe what you need in chat. You can connect social accounts from Meliza’s settings.
+            Google sign-in creates your private Meliza account. Then connect each social platform you want to use; Google sign-in does not authorize those accounts automatically.
           </p>
         </div>
         <section aria-labelledby="signin-features-title" className="min-w-0">

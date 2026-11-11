@@ -200,9 +200,6 @@ export async function createSocialSessionTools(
           if (isSocialReplyAction(slug)) {
             throw new Error("Automatic replies are disabled until the seller configures approved reply rules and templates.");
           }
-          if (/\bFirst Income Clarity\b/i.test(JSON.stringify(arguments_))) {
-            throw new Error("First Income Clarity publishing and promotion are paused.");
-          }
           if (isPostAction(slug)) {
             const reserved = await reserveStarterPost(
               userId,
