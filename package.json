@@ -9,7 +9,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "start": "next start",
+    "migrate": "node scripts/migrate-auth.mjs",
+    "start": "node scripts/migrate-auth.mjs && next start",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
