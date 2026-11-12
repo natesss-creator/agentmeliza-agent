@@ -2,12 +2,16 @@ import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 
 const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+// `next build` imports route modules to collect page data; configuration is only
+// enforced at runtime so builds (and preview builds) work without secrets.
+const IS_BUILD = process.env.NEXT_PHASE === "phase-production-build";
 const DEVELOPMENT_ALLOWED_HOSTS = ["localhost:*", "127.0.0.1:*", "*.app.github.dev"];
 
 function getAllowedHosts(): string[] {
   if (process.env.NODE_ENV === "development") {
     return DEVELOPMENT_ALLOWED_HOSTS;
   }
+  if (IS_BUILD && !process.env.APP_URL) return ["localhost"];
   const appUrl = process.env.APP_URL;
   if (!appUrl) {
     throw new Error("APP_URL must be configured with the public URL of this deployment.");
@@ -40,11 +44,13 @@ function requireEnvironmentVariable(name: string): string {
   const value = process.env[name];
   if (value) return value;
   if (process.env.NODE_ENV === "development") return `development-${name}`;
+  if (IS_BUILD) return `build-placeholder-${name}`;
   throw new Error(`Missing required environment variable: ${name}`);
 }
 
 function getDatabasePool(): Pool | undefined {
   const connectionString = process.env.DATABASE_URL;
+  if (!connectionString && IS_BUILD) return undefined;
   if (!connectionString && process.env.NODE_ENV !== "development") {
     throw new Error("DATABASE_URL must be configured with a persistent PostgreSQL database.");
   }
