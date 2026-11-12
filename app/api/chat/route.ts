@@ -3,6 +3,7 @@ import { melizaModel } from "@/lib/model-routing";
 import { auth } from "@/lib/auth";
 import { createSocialSessionTools } from "@/lib/composio-session-tools";
 import { isUserMediaReference } from "@/lib/user-media";
+import { getUserGeminiKey } from "@/lib/user-api-keys";
 import { getUserPackageAssignment } from "@/lib/user-packages";
 
 export const maxDuration = 60;
@@ -113,9 +114,11 @@ export async function POST(request: Request) {
     return Boolean(value && typeof value === "object" && "url" in value && "contentType" in value && "name" in value);
   }
 
+  const userKey = await getUserGeminiKey(userId).catch(() => null);
+
   try {
     const result = streamText({
-      model: melizaModel(),
+      model: melizaModel("main", userKey),
       system: `${SYSTEM_PROMPT}\n\nPackage permissions: ${packageInstructions}`,
       messages,
       tools: social.tools,
