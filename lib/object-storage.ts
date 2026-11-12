@@ -15,7 +15,10 @@ type ObjectPage = {
   nextCursor?: string;
 };
 
-let client: S3Client | undefined;
+type BucketKind = "private" | "public";
+
+const clients = new Map<BucketKind, S3Client>();
+const PUBLIC_PREFIXES = ["user-media/", "video-posts/"] as const;
 
 function required(name: string): string {
   const value = process.env[name];
@@ -23,8 +26,18 @@ function required(name: string): string {
   return value;
 }
 
-function getClient(): S3Client {
-  if (client) return client;
+function bucketName(kind: BucketKind): string {
+  const name = required(kind === "private" ? "S3_BUCKET" : "S3_PUBLIC_BUCKET");
+  if (kind === "public" && name === required("S3_BUCKET")) {
+    throw new Error("S3_PUBLIC_BUCKET must be a dedicated bucket, different from private S3_BUCKET.");
+  }
+  return name;
+}
+
+function getClient(kind: BucketKind): S3Client {
+  const cached = clients.get(kind);
+  if (cached) return cached;
+
   const endpoint = process.env.S3_ENDPOINT;
   const accessKeyId = process.env.S3_ACCESS_KEY_ID;
   const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
@@ -49,18 +62,15 @@ function getClient(): S3Client {
     }
   }
 
-  client = new S3Client({
+  const client = new S3Client({
     region: process.env.S3_REGION || "us-east-1",
     ...(endpoint ? { endpoint, forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "false" } : {}),
     ...(accessKeyId && secretAccessKey
       ? { credentials: { accessKeyId, secretAccessKey } }
       : {}),
   });
+  clients.set(kind, client);
   return client;
-}
-
-function bucketName(): string {
-  return required("S3_BUCKET");
 }
 
 function validateKey(key: string): void {
@@ -69,12 +79,19 @@ function validateKey(key: string): void {
   }
 }
 
+function isAllowedPublicKey(key: string): boolean {
+  return PUBLIC_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
 function encodedKey(key: string): string {
   return key.split("/").map(encodeURIComponent).join("/");
 }
 
 export function publicObjectUrl(key: string): string {
   validateKey(key);
+  if (!isAllowedPublicKey(key)) {
+    throw new Error("Only user-media/ and video-posts/ objects may be stored in public object storage.");
+  }
   const base = required("S3_PUBLIC_BASE_URL").replace(/\/+$/, "");
   const parsed = new URL(base);
   if (parsed.protocol !== "https:" && process.env.NODE_ENV !== "development") {
@@ -119,9 +136,9 @@ export async function putObject(
   options: StoredObjectOptions = {},
 ): Promise<void> {
   validateKey(key);
-  await getClient().send(
+  await getClient("private").send(
     new PutObjectCommand({
-      Bucket: bucketName(),
+      Bucket: bucketName("private"),
       Key: key,
       Body: body,
       ...(options.contentType ? { ContentType: options.contentType } : {}),
@@ -135,15 +152,22 @@ export async function putPublicObject(
   options: StoredObjectOptions = {},
 ): Promise<{ url: string }> {
   const url = publicObjectUrl(key);
-  await putObject(key, body, options);
+  await getClient("public").send(
+    new PutObjectCommand({
+      Bucket: bucketName("public"),
+      Key: key,
+      Body: body,
+      ...(options.contentType ? { ContentType: options.contentType } : {}),
+    }),
+  );
   return { url };
 }
 
 export async function getObject(key: string): Promise<Buffer | null> {
   validateKey(key);
   try {
-    const response = await getClient().send(
-      new GetObjectCommand({ Bucket: bucketName(), Key: key }),
+    const response = await getClient("private").send(
+      new GetObjectCommand({ Bucket: bucketName("private"), Key: key }),
     );
     if (!response.Body) return null;
     return Buffer.from(await response.Body.transformToByteArray());
@@ -165,8 +189,8 @@ export async function getObject(key: string): Promise<Buffer | null> {
 
 export async function deleteObject(key: string): Promise<void> {
   validateKey(key);
-  await getClient().send(
-    new DeleteObjectCommand({ Bucket: bucketName(), Key: key }),
+  await getClient("private").send(
+    new DeleteObjectCommand({ Bucket: bucketName("private"), Key: key }),
   );
 }
 
@@ -178,9 +202,9 @@ export async function listObjectKeys(
   if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
     throw new Error("Object listing limit must be between 1 and 1000.");
   }
-  const response = await getClient().send(
+  const response = await getClient("private").send(
     new ListObjectsV2Command({
-      Bucket: bucketName(),
+      Bucket: bucketName("private"),
       Prefix: prefix,
       MaxKeys: limit,
       ...(cursor ? { ContinuationToken: cursor } : {}),
